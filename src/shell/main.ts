@@ -1,5 +1,7 @@
 // Shell: wires the core to the Canvas. Owns the DOM and the frame loop.
 import { attemptPlacement, create, queryFit, trayFits, type GameState } from "../core";
+import { directFeedback } from "../feedback/director";
+import { createTextOverlay } from "../feedback/overlay";
 import { attachDrag } from "../input/drag";
 import { createHud, createScoreStats } from "./hud";
 import { render, type DragView } from "../renderer/renderer";
@@ -21,6 +23,8 @@ let state: GameState = persistence.loadRun({ seed: Date.now() }); // resumes the
 let fits = trayFits(state); // recomputed after every Placement
 let drag: DragView | null = null;
 const hud = createHud(document.body, canvas);
+/** Praise, COMBO ×N and NEW BEST! pops, drawn over the Board. */
+const overlay = createTextOverlay();
 
 const gameOver = createGameOverScreen(document.body, playAgain);
 const gameOverStats = createScoreStats(gameOver.stats);
@@ -29,7 +33,9 @@ const gameOverStats = createScoreStats(gameOver.stats);
 function playAgain(): void {
   drag = null;
   gameOver.hide();
+  overlay.reset();
   setState(create({ seed: Date.now(), best: state.best }));
+  hud.reset(state);
 }
 
 let cssWidth = 0;
@@ -61,6 +67,7 @@ function draw(now: number = lastNow): void {
     trayFits: fits,
     backdrop: backdrop.current(),
     boardOverlay,
+    texts: overlay.frame(now),
   });
 }
 
@@ -76,7 +83,6 @@ backdrop.setLevel(state.paletteLevel, true); // a resumed Run opens at its color
 function setState(next: GameState): void {
   state = next;
   fits = trayFits(state);
-  hud.update(state);
   backdrop.setLevel(state.paletteLevel); // smooth Palette Shift (and back to level 0 on a new Run)
   persistence.saveRun(state); // after every Placement (incl. Game Over) and Play again
   loop.invalidate();
@@ -94,7 +100,7 @@ function localStorageOrNull(): Storage | null {
 new ResizeObserver(resize).observe(canvas);
 window.addEventListener("resize", resize);
 resize();
-hud.update(state);
+hud.reset(state);
 if (state.over) {
   // The restored Run had already ended: show its Game Over screen.
   gameOverStats.update(state);
@@ -109,8 +115,14 @@ attachDrag(canvas, {
     if (!result.ok) return false; // snaps back: the Piece stays in its Tray slot
     setState(result.state);
     // State changes at once; effects only draw on top, so the next Piece can be dragged right away.
-    effects.onPlacement(result.events, performance.now());
-    loop.animate((now) => effects.active(now));
+    // performance.now() shares the rAF timestamp's time base.
+    const now = performance.now();
+    effects.onPlacement(result.events, now);
+    loop.animate((t) => effects.active(t));
+    hud.update(state, now);
+    loop.animate((t) => hud.tick(t));
+    overlay.play(directFeedback(result.events), now);
+    if (overlay.busy(now)) loop.animate((t) => overlay.busy(t));
     if (result.events.some((e) => e.type === "gameOver")) {
       gameOverStats.update(state);
       gameOver.show();

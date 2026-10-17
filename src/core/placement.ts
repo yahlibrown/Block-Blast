@@ -68,6 +68,14 @@ export type GameEvent =
       readonly level: number;
     }
   | {
+      /** The score passed the Best Score held at the start of the Run. At most once per Run; never if that was 0. */
+      readonly type: "newBest";
+      /** The score after this Placement. */
+      readonly score: number;
+      /** The Best Score the Run started with (the one just beaten). */
+      readonly previous: number;
+    }
+  | {
       readonly type: "trayDealt";
       readonly tray: Tray;
     }
@@ -165,7 +173,11 @@ export function attemptPlacement(
   // Palette Shift: one event with the final level, even if one Placement passes several thresholds.
   const paletteLevel = Math.max(state.paletteLevel, paletteLevelFor(score));
   if (paletteLevel > state.paletteLevel) events.push({ type: "paletteShift", level: paletteLevel });
-  // (Ticket 09) newBest, (13) skinUnlocked slot in here, after paletteShift and before trayDealt.
+  const previous = state.runStartBest;
+  if (previous > 0 && state.score <= previous && score > previous) {
+    events.push({ type: "newBest", score, previous });
+  }
+  // (Ticket 13) skinUnlocked slots in here, after newBest and before trayDealt.
 
   let tray: Tray = state.tray.map((t, i) => (i === slot ? null : t));
   let rng = state.rng;
