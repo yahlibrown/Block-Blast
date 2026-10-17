@@ -2,12 +2,12 @@
 // Holds no rules: the shell asks the core whether the origin fits and attempts the Placement.
 import type { GameState, Position } from "../core";
 import { layoutGame, type DragView } from "../renderer/renderer";
-import { amplifiedTopLeft, boardOrigin, clampOnScreen, liftedTopLeft, type Point } from "./geometry";
+import { amplifiedTopLeft, boardOrigin, clampOnScreen, liftedTopLeft, pieceSize, type Point } from "./geometry";
 import type { PieceAt } from "./snapBack";
 
 /** How far the dragged Piece's bottom edge floats above the finger, in Board Cells. */
 const DRAG_LIFT_CELLS = 1.2;
-/** How many times further than the thumb a touch Drag carries the Piece. Mouse Drags stay 1:1. */
+/** How many times further than the finger a touch Drag carries the Piece. Mouse Drags stay 1:1. */
 const DRAG_GAIN = 1.5;
 
 export interface DragHost {
@@ -23,7 +23,13 @@ export interface DragHost {
 }
 
 export function attachDrag(canvas: HTMLCanvasElement, host: DragHost): void {
-  let active: { pointerId: number; slot: number; grab: Point; gain: number } | null = null;
+  /** `anchor`: a finger position and where the Piece was drawn then; the Piece moves `gain`× the finger's travel from it. */
+  let active: {
+    pointerId: number;
+    slot: number;
+    gain: number;
+    anchor: { finger: Point; at: Point } | null;
+  } | null = null;
   let drag: DragView | null = null;
 
   const layout = () => {
@@ -42,7 +48,7 @@ export function attachDrag(canvas: HTMLCanvasElement, host: DragHost): void {
       (s) => p.x >= s.x && p.x < s.x + s.w && p.y >= s.y && p.y < s.y + s.h,
     );
     if (slot < 0 || !host.getState().tray[slot]) return;
-    active = { pointerId: e.pointerId, slot, grab: p, gain: e.pointerType === "mouse" ? 1 : DRAG_GAIN };
+    active = { pointerId: e.pointerId, slot, gain: e.pointerType === "mouse" ? 1 : DRAG_GAIN, anchor: null };
     canvas.setPointerCapture(e.pointerId);
     move(p);
   });
@@ -78,12 +84,12 @@ export function attachDrag(canvas: HTMLCanvasElement, host: DragHost): void {
     if (!entry) return end();
     const { board } = layout();
     const { cellSize } = board;
-    const lifted = liftedTopLeft(active.grab, entry.piece, cellSize, cellSize * DRAG_LIFT_CELLS);
-    const at = clampOnScreen(
-      amplifiedTopLeft(lifted, active.grab, p, active.gain),
-      { width: entry.piece.cols * cellSize, height: entry.piece.rows * cellSize },
-      host.getSize(),
-    );
+    const free = active.anchor
+      ? amplifiedTopLeft(active.anchor.at, active.anchor.finger, p, active.gain)
+      : liftedTopLeft(p, entry.piece, cellSize, cellSize * DRAG_LIFT_CELLS);
+    const at = clampOnScreen(free, pieceSize(entry.piece, cellSize), host.getSize());
+    // Re-anchor on grab and whenever a screen edge stops the Piece, so moving back moves it at once.
+    if (!active.anchor || at.x !== free.x || at.y !== free.y) active.anchor = { finger: p, at };
     drag = { slot: active.slot, x: at.x, y: at.y, origin: boardOrigin(board, at) };
     host.changed(drag);
   }

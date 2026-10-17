@@ -26,7 +26,7 @@ describe("an amplified Drag", () => {
   const grab = { x: 200, y: 600 };
   const lifted = { x: 160, y: 420 };
 
-  it("moves the Piece k times as far as the finger has moved since the grab", () => {
+  it("moves the Piece `gain` times as far as the finger has moved since the grab", () => {
     expect(amplifiedTopLeft(lifted, grab, { x: 220, y: 500 }, 1.5)).toEqual({ x: 190, y: 270 });
   });
 
@@ -34,7 +34,7 @@ describe("an amplified Drag", () => {
     expect(amplifiedTopLeft(lifted, grab, grab, 1.5)).toEqual(lifted);
   });
 
-  it("tracks the finger 1:1 at k = 1", () => {
+  it("tracks the finger 1:1 at a gain of 1", () => {
     expect(amplifiedTopLeft(lifted, grab, { x: 170, y: 450 }, 1)).toEqual({ x: 130, y: 270 });
   });
 });

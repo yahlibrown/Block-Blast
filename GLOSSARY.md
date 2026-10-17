@@ -29,7 +29,7 @@ Carrying a **Piece** from the **Tray** across the **Board** before letting go; l
 _Avoid_: Move, swipe, hold
 
 **Ghost**:
-The preview of the **Cells** the dragged **Piece** would fill if let go now, shown only where it fits.
+A see-through copy of the dragged **Piece** on the **Board**, in the **Cells** it would fill if let go now; shown only where it fits.
 _Avoid_: Shadow, preview, hint
 
 **Line**:

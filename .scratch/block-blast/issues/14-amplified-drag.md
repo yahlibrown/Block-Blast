@@ -21,3 +21,4 @@
 
 - Implemented on branch `ticket-14-amplified-drag`: `amplifiedTopLeft` and `clampOnScreen` in `src/input/geometry.ts` (tested), wired in `src/input/drag.ts`, `DRAG_GAIN = 1.5`.
 - Human to verify on the phone: reaching the top row and the far corners takes a short thumb movement; single-Cell adjustments are still easy to control. If it feels twitchy, lower `DRAG_GAIN`; if it still feels like work, raise it.
+- 2026-10-17 (orchestrator): Code review (standards + spec) fixes merged into `block-blast`: the Piece re-anchors when a screen edge stops it, so moving back moves it at once (no sticky edge); `pieceSize`/`Size` replace duplicated pixel maths; Ghost glossary wording and spec.md Input line updated. Keeping the Piece on screen also applies to mouse drags and at grab (the "stays fully on screen" rule wins).
