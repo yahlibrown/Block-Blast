@@ -2,6 +2,7 @@
 import { dealTray } from "./dealer";
 import type { Piece, PieceId, Position } from "./pieces";
 import { BOARD_CLEAR_BONUS, blockPoints, clearPoints, stepCombo } from "./scoring";
+import { paletteLevelFor } from "./palette";
 import { BOARD_SIZE, type Board, type GameState, type Tray } from "./state";
 
 /** Why a Placement was refused. "game-over": the Run has ended. */
@@ -59,6 +60,12 @@ export type GameEvent =
       /** A Clear left the Board fully empty. */
       readonly type: "boardClear";
       readonly bonus: number;
+    }
+  | {
+      /** The score passed one or more Palette Shift thresholds (after any Board Clear bonus). */
+      readonly type: "paletteShift";
+      /** New Palette Shift level (1 after the first threshold). */
+      readonly level: number;
     }
   | {
       /** The score passed the Best Score held at the start of the Run. At most once per Run; never if that was 0. */
@@ -163,11 +170,14 @@ export function attemptPlacement(
   } else if (combo.broke !== null) {
     events.push({ type: "comboBroken", level: combo.broke });
   }
-  // (12) paletteShift goes here, before newBest; (13) skinUnlocked after it.
+  // Palette Shift: one event with the final level, even if one Placement passes several thresholds.
+  const paletteLevel = Math.max(state.paletteLevel, paletteLevelFor(score));
+  if (paletteLevel > state.paletteLevel) events.push({ type: "paletteShift", level: paletteLevel });
   const previous = state.runStartBest;
   if (previous > 0 && state.score <= previous && score > previous) {
     events.push({ type: "newBest", score, previous });
   }
+  // (Ticket 13) skinUnlocked slots in here, after newBest and before trayDealt.
 
   let tray: Tray = state.tray.map((t, i) => (i === slot ? null : t));
   let rng = state.rng;
@@ -185,6 +195,7 @@ export function attemptPlacement(
     best: Math.max(state.best, score),
     combo: combo.combo,
     dry: combo.dry,
+    paletteLevel,
   };
   const over = !trayFits(next).some(Boolean);
   if (over) events.push({ type: "gameOver" });

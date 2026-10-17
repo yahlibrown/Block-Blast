@@ -47,5 +47,16 @@ export function create(options: CreateOptions): GameState {
   const board = emptyBoard();
   const [tray, rng] = dealTray(board, seedRng(options.seed));
   const best = options.best ?? 0;
-  return { board, tray, rng, score: 0, best, runStartBest: best, combo: 0, dry: 0, over: false };
+  return {
+    board,
+    tray,
+    rng,
+    score: 0,
+    best,
+    runStartBest: best,
+    combo: 0,
+    dry: 0,
+    over: false,
+    paletteLevel: 0,
+  };
 }

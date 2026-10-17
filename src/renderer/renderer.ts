@@ -1,5 +1,6 @@
 // Canvas 2D renderer. Draws game state; holds no game rules.
 import type { Board, Cell, FitResult, GameState, Piece, Position } from "../core";
+import { BASE_BACKDROP, withAlpha, type Backdrop } from "./palette";
 
 export interface BoardLayout {
   /** Top-left of the Board, in CSS pixels. */
@@ -40,6 +41,8 @@ export interface View {
   readonly preview: FitResult | null;
   /** Core Tray fit query: a slot whose Piece fits nowhere is drawn dimmed. */
   readonly trayFits: readonly boolean[];
+  /** Background + glow colors (Palette Shift, mid-transition). Defaults to the base look. */
+  readonly backdrop?: Backdrop;
   /** Feedback texts (Praise, COMBO ×N, NEW BEST!) to draw over the Board this frame. */
   readonly texts?: readonly OverlayText[];
 }
@@ -57,7 +60,6 @@ export interface OverlayText {
 }
 
 const COLORS = {
-  background: "#1b2440",
   boardBackground: "#121a30",
   emptyCell: "#232f52",
   /** Wash over the Lines that would Clear. */
@@ -67,6 +69,9 @@ const COLORS = {
 /** Opacity of ghost preview Cells, and of Tray Pieces that fit nowhere. */
 const GHOST_ALPHA = 0.4;
 const DIMMED_ALPHA = 0.3;
+/** Strength of the glow halo behind the Board, and of its rim. */
+const GLOW_ALPHA = 0.35;
+const GLOW_RIM_ALPHA = 0.8;
 
 /** Block color per core color index (a Skin will replace this in ticket 13). */
 const BLOCK_COLORS = [
@@ -109,13 +114,15 @@ export function render(
   height: number,
   view: View,
 ): void {
-  ctx.fillStyle = COLORS.background;
+  const backdrop = view.backdrop ?? BASE_BACKDROP;
+  ctx.fillStyle = backdrop.background;
   ctx.fillRect(0, 0, width, height);
 
   const { board, tray } = view.state;
   const columns = board[0]?.length ?? 0;
   if (columns === 0) return;
   const layout = layoutGame(width, height, columns);
+  drawGlow(ctx, layout.board, columns, backdrop.glow);
   const dragged = view.drag ? (tray[view.drag.slot] ?? null) : null;
   const preview = dragged && view.preview?.fits ? view.preview : null;
 
@@ -213,6 +220,26 @@ export function trayPieceOrigin(layout: GameLayout, slot: number, piece: Piece):
     x: rect.x + (rect.w - piece.cols * size) / 2,
     y: rect.y + (rect.h - piece.rows * size) / 2,
   };
+}
+
+/** Soft halo of the glow color behind the Board (the Palette Shift's glow). */
+function drawGlow(ctx: CanvasRenderingContext2D, layout: BoardLayout, columns: number, glow: string): void {
+  const side = layout.cellSize * columns;
+  const cx = layout.x + side / 2;
+  const cy = layout.y + side / 2;
+  const halo = ctx.createRadialGradient(cx, cy, side * 0.3, cx, cy, side * 0.95);
+  halo.addColorStop(0, withAlpha(glow, GLOW_ALPHA));
+  halo.addColorStop(1, withAlpha(glow, 0));
+  ctx.fillStyle = halo;
+  ctx.fillRect(cx - side, cy - side, side * 2, side * 2);
+  // A tighter rim of light hugging the Board frame.
+  ctx.save();
+  ctx.shadowColor = withAlpha(glow, GLOW_RIM_ALPHA);
+  ctx.shadowBlur = layout.cellSize * 0.8;
+  ctx.fillStyle = COLORS.boardBackground;
+  const pad = Math.max(1, layout.cellSize * 0.06);
+  roundRect(ctx, layout.x - pad, layout.y - pad, side + pad * 2, side + pad * 2, layout.cellSize * 0.18);
+  ctx.restore();
 }
 
 function drawBoard(

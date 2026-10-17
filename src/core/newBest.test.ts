@@ -98,6 +98,12 @@ describe("NEW BEST", () => {
     ]);
   });
 
+  it("comes after a Palette Shift reached by the same Placement", () => {
+    const { events } = placeDots(run({ score: 999, best: 999 }), 1);
+
+    expect(events[0]!.map((e) => e.type)).toEqual(["piecePlaced", "paletteShift", "newBest"]);
+  });
+
   it("does not fire again after a save and restore mid-Run", () => {
     const first = placeDots(run({ score: 5, best: 5 }), 1);
     expect(newBests(first.events).flat()).toHaveLength(1);

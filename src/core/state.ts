@@ -45,6 +45,8 @@ export interface GameState {
   readonly dry: number;
   /** Game Over: no remaining Tray Piece fits. Final; Placements are then rejected. */
   readonly over: boolean;
+  /** Palette Shift level reached this Run (0 at the start of every Run). */
+  readonly paletteLevel: number;
 }
 
 export function emptyBoard(): Cell[][] {
