@@ -68,6 +68,8 @@ open_url() {
   local url="$1"
   printf '  %s↗ opening%s %s\n' "$GREEN" "$RESET" "$url"
   { if   command -v wslview     >/dev/null 2>&1; then wslview "$url"
+    # Git Bash on Windows: explorer.exe exits non-zero even on success, so use start.
+    elif command -v cmd.exe     >/dev/null 2>&1 && [ -z "${WSL_DISTRO_NAME:-}" ]; then cmd.exe //c start "" "$url"
     elif command -v explorer.exe >/dev/null 2>&1; then explorer.exe "$url"
     elif command -v xdg-open    >/dev/null 2>&1; then xdg-open "$url"
     elif command -v open        >/dev/null 2>&1; then open "$url"
