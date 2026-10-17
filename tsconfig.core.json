@@ -1,0 +1,12 @@
+{
+  // Type-checks the pure game core with NO DOM / Node typings, so any use of
+  // document, window, setTimeout, localStorage, AudioContext, navigator, etc.
+  // fails the build. Run as part of `npm run build`.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "lib": ["ES2022"],
+    "types": []
+  },
+  "include": ["src/core", "src/tuning"],
+  "exclude": ["**/*.test.ts"]
+}
