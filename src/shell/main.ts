@@ -1,5 +1,7 @@
 // Shell: wires the core to the Canvas. Owns the DOM and the frame loop.
 import { attemptPlacement, create, queryFit, trayFits, type GameState } from "../core";
+import { directFeedback } from "../feedback/director";
+import { createTextOverlay } from "../feedback/overlay";
 import { attachDrag } from "../input/drag";
 import { createHud, createScoreStats } from "./hud";
 import { render, type DragView } from "../renderer/renderer";
@@ -16,6 +18,8 @@ let state: GameState = create({ seed: Date.now() });
 let fits = trayFits(state); // recomputed after every Placement
 let drag: DragView | null = null;
 const hud = createHud(document.body, canvas);
+/** Praise, COMBO ×N and NEW BEST! pops, drawn over the Board. */
+const overlay = createTextOverlay();
 
 const gameOver = createGameOverScreen(document.body, playAgain);
 const gameOverStats = createScoreStats(gameOver.stats);
@@ -24,7 +28,9 @@ const gameOverStats = createScoreStats(gameOver.stats);
 function playAgain(): void {
   drag = null;
   gameOver.hide();
+  overlay.reset();
   setState(create({ seed: Date.now(), best: state.best }));
+  hud.reset(state);
 }
 
 let cssWidth = 0;
@@ -41,9 +47,10 @@ function resize(): void {
   draw(); // resizing clears the canvas: redraw now, not next frame
 }
 
-function draw(): void {
+function draw(now: number = performance.now()): void {
   const preview = drag ? queryFit(state, drag.slot, drag.origin) : null;
-  render(ctx!, cssWidth, cssHeight, { state, drag, preview, trayFits: fits });
+  const texts = overlay.frame(now);
+  render(ctx!, cssWidth, cssHeight, { state, drag, preview, trayFits: fits, texts });
 }
 
 /** All redraws go through this loop; animations register with `loop.animate`. */
@@ -52,14 +59,13 @@ const loop = createFrameLoop(draw, (cb) => requestAnimationFrame(cb));
 function setState(next: GameState): void {
   state = next;
   fits = trayFits(state);
-  hud.update(state);
   loop.invalidate();
 }
 
 new ResizeObserver(resize).observe(canvas);
 window.addEventListener("resize", resize);
 resize();
-hud.update(state);
+hud.reset(state);
 
 attachDrag(canvas, {
   getState: () => state,
@@ -68,6 +74,12 @@ attachDrag(canvas, {
     const result = attemptPlacement(state, slot, origin);
     if (!result.ok) return false; // snaps back: the Piece stays in its Tray slot
     setState(result.state);
+    // performance.now() shares the rAF timestamp's time base.
+    const now = performance.now();
+    hud.update(state, now);
+    loop.animate((t) => hud.tick(t));
+    overlay.play(directFeedback(result.events), now);
+    if (overlay.busy(now)) loop.animate((t) => overlay.busy(t));
     if (result.events.some((e) => e.type === "gameOver")) {
       gameOverStats.update(state);
       gameOver.show();

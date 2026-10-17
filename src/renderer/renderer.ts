@@ -40,6 +40,20 @@ export interface View {
   readonly preview: FitResult | null;
   /** Core Tray fit query: a slot whose Piece fits nowhere is drawn dimmed. */
   readonly trayFits: readonly boolean[];
+  /** Feedback texts (Praise, COMBO ×N, NEW BEST!) to draw over the Board this frame. */
+  readonly texts?: readonly OverlayText[];
+}
+
+/** One feedback text pop, already animated (the feedback overlay computes these). */
+export interface OverlayText {
+  readonly role: "praise" | "combo" | "newBest";
+  readonly text: string;
+  /** Praise strength 0..4. */
+  readonly tier: number;
+  readonly scale: number;
+  readonly alpha: number;
+  /** Upward drift, in Cells. */
+  readonly rise: number;
 }
 
 const COLORS = {
@@ -142,6 +156,53 @@ export function render(
   if (view.drag && dragged) {
     drawPiece(ctx, dragged.piece, dragged.color, view.drag.x, view.drag.y, layout.board.cellSize);
   }
+
+  for (const text of view.texts ?? []) drawOverlayText(ctx, layout.board, columns, text);
+}
+
+/** Where each feedback text sits, as a fraction of the Board's height from its top. */
+const TEXT_ROW: Record<OverlayText["role"], number> = { newBest: 0.22, praise: 0.45, combo: 0.66 };
+/** Praise colors by tier: white "Good!" up to violet "Unbelievable!". */
+const PRAISE_COLORS = ["#ffffff", "#ffe14d", "#ffb330", "#ff6fb5", "#c58bff"] as const;
+
+function drawOverlayText(
+  ctx: CanvasRenderingContext2D,
+  board: BoardLayout,
+  columns: number,
+  pop: OverlayText,
+): void {
+  if (pop.alpha <= 0) return;
+  const { cellSize } = board;
+  const side = cellSize * columns;
+  const size =
+    pop.role === "praise"
+      ? cellSize * (0.85 + 0.12 * pop.tier)
+      : pop.role === "newBest"
+        ? cellSize * 1.0
+        : cellSize * 0.7;
+  const color =
+    pop.role === "praise"
+      ? PRAISE_COLORS[Math.min(pop.tier, PRAISE_COLORS.length - 1)]!
+      : pop.role === "newBest"
+        ? "#ffd166"
+        : "#7ef0ff";
+  ctx.save();
+  ctx.globalAlpha = Math.min(1, pop.alpha);
+  ctx.translate(board.x + side / 2, board.y + side * TEXT_ROW[pop.role] - pop.rise * cellSize);
+  ctx.scale(pop.scale, pop.scale);
+  ctx.font = `900 ${Math.round(size)}px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.lineJoin = "round";
+  ctx.shadowColor = color;
+  ctx.shadowBlur = size * 0.5;
+  ctx.lineWidth = size * 0.16;
+  ctx.strokeStyle = "rgba(12, 16, 34, 0.9)";
+  ctx.strokeText(pop.text, 0, 0);
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = color;
+  ctx.fillText(pop.text, 0, 0);
+  ctx.restore();
 }
 
 /** Top-left of a Tray Piece as drawn at rest, in CSS pixels. */

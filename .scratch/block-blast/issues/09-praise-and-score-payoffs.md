@@ -10,10 +10,15 @@
 
 **Status:** ready-for-agent
 
-- [ ] The core emits a NEW BEST event exactly once per Run, at the first Placement that pushes the score past the Best Score held at the start of the Run (none if the Best Score was 0)
-- [ ] Praise text escalates with Multi-Clear size and Combo level; the mapping is in one table
-- [ ] Praise pops in with an animated scale/fade and never blocks input
-- [ ] The "COMBO ×N" display shows on Combo increases and clears or fades when the Combo breaks
-- [ ] The score counts up smoothly to the new value
-- [ ] Core tests cover NEW BEST firing once, not firing below the Best Score, and not firing on a first-ever Run with Best Score 0
+- [x] The core emits a NEW BEST event exactly once per Run, at the first Placement that pushes the score past the Best Score held at the start of the Run (none if the Best Score was 0)
+- [x] Praise text escalates with Multi-Clear size and Combo level; the mapping is in one table
+- [x] Praise pops in with an animated scale/fade and never blocks input
+- [x] The "COMBO ×N" display shows on Combo increases and clears or fades when the Combo breaks
+- [x] The score counts up smoothly to the new value
+- [x] Core tests cover NEW BEST firing once, not firing below the Best Score, and not firing on a first-ever Run with Best Score 0
 - [ ] Playtested on the phone: the messages feel rewarding, not cluttered
+
+## Comments
+
+- Implemented on `ticket-09-praise-and-score-payoffs`. Core: `runStartBest` + `newBest` event. Feedback director in `src/feedback/` (Praise table in `praise.ts`), text pops drawn on the canvas, HUD score count-up.
+- **Human to verify (phone playtest):** the messages feel rewarding, not cluttered — Praise size/colors per tier, COMBO ×N placement (shown from ×2, below the Praise), NEW BEST! burst, count-up speed. Tune `PRAISE` in `src/feedback/praise.ts`, timings in `src/feedback/overlay.ts`, sizes/positions in `drawOverlayText` (`src/renderer/renderer.ts`).

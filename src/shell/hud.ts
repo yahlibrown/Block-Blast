@@ -1,14 +1,25 @@
 // Score HUD: the current score and Best Score, shown above the Board during play,
 // plus the same pair as rows on the Game Over screen.
 // Plain DOM in a band above the canvas, so the renderer's layout is untouched.
-// (Ticket 09 replaces the instant update with a count-up.)
+// The play HUD's score rolls up to each new value (ticket 09 count-up).
 import type { GameState } from "../core";
+import { createCountUp } from "../feedback/countUp";
 
 export interface Hud {
   update(state: GameState): void;
 }
 
-export function createHud(parent: HTMLElement, before: Element): Hud {
+/** The play HUD: `update` starts a roll; the frame loop calls `tick` until it returns false. */
+export interface LiveHud {
+  /** Roll the shown score up to `state.score`, starting at `now` (rAF time base). */
+  update(state: GameState, now: number): void;
+  /** Show `state` at once, no roll (startup, new Run). */
+  reset(state: GameState): void;
+  /** Write the value shown at `now`; false once the roll has landed. */
+  tick(now: number): boolean;
+}
+
+export function createHud(parent: HTMLElement, before: Element): LiveHud {
   const root = document.createElement("div");
   root.id = "hud";
   root.innerHTML = `
@@ -18,10 +29,32 @@ export function createHud(parent: HTMLElement, before: Element): Hud {
   parent.insertBefore(root, before);
   const score = root.querySelector<HTMLElement>("[data-score]")!;
   const best = root.querySelector<HTMLElement>("[data-best]")!;
+  const shown = createCountUp(0);
+  let current: GameState | null = null;
+
+  const write = (now: number) => {
+    if (!current) return;
+    const value = shown.value(now);
+    score.textContent = formatScore(value);
+    // While the score is the Best Score, the Best rolls up with it instead of jumping ahead.
+    const bestShown = current.best > current.score ? current.best : Math.max(current.runStartBest, value);
+    best.textContent = formatScore(bestShown);
+  };
+
   return {
-    update(state) {
-      score.textContent = formatScore(state.score);
-      best.textContent = formatScore(state.best);
+    update(state, now) {
+      current = state;
+      shown.to(state.score, now);
+      write(now);
+    },
+    reset(state) {
+      current = state;
+      shown.set(state.score);
+      write(0);
+    },
+    tick(now) {
+      write(now);
+      return !shown.done(now);
     },
   };
 }

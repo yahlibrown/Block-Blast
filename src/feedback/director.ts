@@ -1,0 +1,46 @@
+// Feedback director: turns one Placement's core events into feedback cues.
+// Pure: it decides *what* the player gets (which Praise, which display); the
+// shell plays the cues (text pops now; particles, shake, sound, haptics later).
+//
+// Extending (tickets 10, 11, …): add members to `FeedbackCue` and push them from
+// the matching event's case below. Cues come out in event order, and players
+// switch on `kind` and ignore kinds they don't handle, so a new kind never
+// breaks an existing player.
+import type { GameEvent } from "../core";
+import { COMBO_DISPLAY_FROM, PRAISE, praiseTier } from "./praise";
+
+export type FeedbackCue =
+  /** Praise text after a Clear; `tier` 0 (Good!) .. PRAISE.length-1 (Unbelievable!). */
+  | { readonly kind: "praise"; readonly text: string; readonly tier: number }
+  /** Show or raise the "COMBO ×N" display. */
+  | { readonly kind: "combo"; readonly level: number }
+  /** A shown Combo broke: fade the display out calmly. */
+  | { readonly kind: "comboEnd"; readonly level: number }
+  /** The first time this Run the score passed the Best Score. */
+  | { readonly kind: "newBest"; readonly score: number };
+
+export type FeedbackCueKind = FeedbackCue["kind"];
+
+export function directFeedback(events: readonly GameEvent[]): FeedbackCue[] {
+  const cues: FeedbackCue[] = [];
+  for (const event of events) {
+    switch (event.type) {
+      case "linesCleared": {
+        // `multiplier` is the Combo level after this Clear's increment.
+        const tier = praiseTier(event.lines, event.multiplier);
+        cues.push({ kind: "praise", text: PRAISE[tier]!.text, tier });
+        break;
+      }
+      case "comboIncreased":
+        if (event.level >= COMBO_DISPLAY_FROM) cues.push({ kind: "combo", level: event.level });
+        break;
+      case "comboBroken":
+        if (event.level >= COMBO_DISPLAY_FROM) cues.push({ kind: "comboEnd", level: event.level });
+        break;
+      case "newBest":
+        cues.push({ kind: "newBest", score: event.score });
+        break;
+    }
+  }
+  return cues;
+}
