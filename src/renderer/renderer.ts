@@ -40,6 +40,14 @@ export interface View {
   readonly preview: FitResult | null;
   /** Core Tray fit query: a slot whose Piece fits nowhere is drawn dimmed. */
   readonly trayFits: readonly boolean[];
+  /** Clear effects hook (ticket 10): shakes the Board and draws over it, under the Tray and drag. */
+  readonly boardOverlay?: BoardOverlay;
+}
+
+export interface BoardOverlay {
+  /** Board offset, in Cells. */
+  readonly shake: { readonly x: number; readonly y: number };
+  draw(ctx: CanvasRenderingContext2D, board: BoardLayout): void;
 }
 
 const COLORS = {
@@ -115,6 +123,12 @@ export function render(
       }
     });
   }
+  const overlay = view.boardOverlay;
+  ctx.save();
+  if (overlay) {
+    const { cellSize } = layout.board;
+    ctx.translate(overlay.shake.x * cellSize, overlay.shake.y * cellSize);
+  }
   const recolor = new Set(clearing.map((p) => p.row * columns + p.col));
   drawBoard(ctx, layout.board, board, (r, c, cell) =>
     cell !== null && dragged && recolor.has(r * columns + c) ? dragged.color : cell,
@@ -130,6 +144,8 @@ export function render(
     ctx.fillStyle = COLORS.lineHighlight;
     for (const p of clearing) drawCell(ctx, x + p.col * cellSize, y + p.row * cellSize, cellSize);
   }
+  overlay?.draw(ctx, layout.board);
+  ctx.restore();
 
   tray.forEach((entry, slot) => {
     if (!entry || view.drag?.slot === slot) return;
@@ -189,12 +205,12 @@ function drawPiece(
 }
 
 /** One block or empty Cell whose square starts at (x, y), in the current fill style. */
-function drawCell(ctx: CanvasRenderingContext2D, x: number, y: number, cellSize: number): void {
+export function drawCell(ctx: CanvasRenderingContext2D, x: number, y: number, cellSize: number): void {
   const pad = Math.max(1, cellSize * 0.06);
   roundRect(ctx, x + pad / 2, y + pad / 2, cellSize - pad, cellSize - pad, cellSize * 0.12);
 }
 
-function blockColor(index: number): string {
+export function blockColor(index: number): string {
   return BLOCK_COLORS[index % BLOCK_COLORS.length]!;
 }
 
