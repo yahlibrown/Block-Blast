@@ -30,6 +30,8 @@ export interface GameState {
   readonly tray: Tray;
   /** Seeded random source state; advanced by dealing. */
   readonly rng: RngState;
+  /** Game Over: no remaining Tray Piece fits. Final; Placements are then rejected. */
+  readonly over: boolean;
 }
 
 export function emptyBoard(): Cell[][] {
