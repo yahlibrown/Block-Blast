@@ -35,23 +35,6 @@ export const TUNING = {
      */
     thresholds: { classic: 0, neon: 5000, candy: 15000, forest: 35000, gold: 75000 },
   },
-  /** Clear effects (ticket 10). Read by `src/renderer/effects`, not by the core. Lengths are in Cells. */
-  effects: {
-    /** Cleared Lines flash (white wash over their old blocks) for this long before bursting. */
-    flashMs: 140,
-    /** Shake amplitude, in Cells: base + perExtraLine × (Lines − 1) + perComboLevel × (Combo − 1), capped. */
-    shake: { base: 0.08, perExtraLine: 0.07, perComboLevel: 0.03, max: 0.45, durationMs: 320 },
-    /** Particles per cleared block, how long they live, and how fast they fly (Cells per second). */
-    particles: { perBlock: 6, lifeMs: 650, speed: 6, gravity: 18, size: 0.22, max: 900 },
-    /** Board Clear celebration: everything bigger and longer, plus a full-Board flash. Shake = shake.max + shakeBonus. */
-    boardClear: {
-      particleMultiplier: 2.5,
-      speedMultiplier: 1.5,
-      shakeBonus: 0.3,
-      shakeDurationMs: 900,
-      flashMs: 600,
-    },
-  },
 } as const;
 
 export type Tuning = typeof TUNING;

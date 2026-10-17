@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 import type { GameEvent } from "../core";
-import { directFeedback } from "./director";
+import { directFeedback, type FeedbackCue } from "./director";
 
-/** The visual cues only (sound and haptic cues are covered in sensory.test.ts). */
-const visualCues = (events: GameEvent[]) =>
-  directFeedback(events).filter((c) => c.kind !== "sound" && c.kind !== "haptic");
+/** The text cues only (Clear effects are covered in clearCues.test.ts, sound and haptics in sensory.test.ts). */
+const TEXT_KINDS: readonly FeedbackCue["kind"][] = ["praise", "combo", "comboEnd", "newBest", "skinUnlocked"];
+const textCues = (events: GameEvent[]) => directFeedback(events).filter((c) => TEXT_KINDS.includes(c.kind));
 
 const placed: GameEvent = {
   type: "piecePlaced",
@@ -27,13 +27,13 @@ function clear(lines: number, combo: number): GameEvent[] {
 }
 
 const praise = (events: GameEvent[]) =>
-  visualCues(events)
+  textCues(events)
     .filter((c) => c.kind === "praise")
     .map((c) => c.text);
 
 describe("Praise", () => {
   it("is silent for a Placement without a Clear", () => {
-    expect(visualCues([placed])).toEqual([]);
+    expect(textCues([placed])).toEqual([]);
   });
 
   it("says Good! for a single Line at the start of a Combo", () => {
@@ -66,8 +66,8 @@ describe("Praise", () => {
   });
 
   it("reports how strong it is, from 0 (Good!) to 4 (Unbelievable!)", () => {
-    expect(visualCues(clear(1, 1))).toContainEqual({ kind: "praise", text: "Good!", tier: 0 });
-    expect(visualCues(clear(5, 1))).toContainEqual({
+    expect(textCues(clear(1, 1))).toContainEqual({ kind: "praise", text: "Good!", tier: 0 });
+    expect(textCues(clear(5, 1))).toContainEqual({
       kind: "praise",
       text: "Unbelievable!",
       tier: 4,
@@ -77,27 +77,27 @@ describe("Praise", () => {
 
 describe("the Combo display", () => {
   it("does not show a ×1 Combo", () => {
-    expect(visualCues(clear(1, 1)).filter((c) => c.kind === "combo")).toEqual([]);
+    expect(textCues(clear(1, 1)).filter((c) => c.kind === "combo")).toEqual([]);
   });
 
   it("shows COMBO ×N when the Combo grows to 2 or more", () => {
-    expect(visualCues(clear(1, 4))).toContainEqual({ kind: "combo", level: 4 });
+    expect(textCues(clear(1, 4))).toContainEqual({ kind: "combo", level: 4 });
   });
 
   it("ends when a shown Combo breaks", () => {
-    expect(visualCues([placed, { type: "comboBroken", level: 3 }])).toEqual([
+    expect(textCues([placed, { type: "comboBroken", level: 3 }])).toEqual([
       { kind: "comboEnd", level: 3 },
     ]);
   });
 
   it("stays quiet when a Combo too small to have been shown breaks", () => {
-    expect(visualCues([placed, { type: "comboBroken", level: 1 }])).toEqual([]);
+    expect(textCues([placed, { type: "comboBroken", level: 1 }])).toEqual([]);
   });
 });
 
 describe("NEW BEST", () => {
   it("bursts when the core reports the Best Score beaten", () => {
-    expect(visualCues([placed, { type: "newBest", score: 120, previous: 100 }])).toEqual([
+    expect(textCues([placed, { type: "newBest", score: 120, previous: 100 }])).toEqual([
       { kind: "newBest", score: 120 },
     ]);
   });
@@ -111,7 +111,7 @@ describe("Skin unlocks", () => {
       { type: "skinUnlocked", skin: "candy" },
     ];
 
-    expect(visualCues(events)).toEqual([
+    expect(textCues(events)).toEqual([
       { kind: "praise", text: "Good!", tier: 0 },
       { kind: "skinUnlocked", skin: "neon", text: "New Skin unlocked!" },
       { kind: "skinUnlocked", skin: "candy", text: "New Skin unlocked!" },
@@ -120,7 +120,7 @@ describe("Skin unlocks", () => {
 });
 
 it("gives cues in the order of the events behind them", () => {
-  const cues = visualCues([...clear(2, 3), { type: "newBest", score: 50, previous: 40 }]);
+  const cues = textCues([...clear(2, 3), { type: "newBest", score: 50, previous: 40 }]);
 
   expect(cues.map((c) => c.kind)).toEqual(["praise", "combo", "newBest"]);
 });

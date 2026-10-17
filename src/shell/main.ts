@@ -1,21 +1,14 @@
 // Shell: wires the core to the Canvas. Owns the DOM and the frame loop.
-import {
-  attemptPlacement,
-  create,
-  profileOf,
-  queryFit,
-  SKINS,
-  trayFits,
-  type GameState,
-  type SkinId,
-} from "../core";
+import { attemptPlacement, create, profileOf, queryFit, trayFits, type GameState, type SkinId } from "../core";
 import { skinLook } from "../renderer/skins";
-import { createSkinPicker, createSkinStats } from "./skins";
-import { directFeedback, type FeedbackCue } from "../feedback/director";
+import { activeSkin, createSkinPicker, createSkinStats } from "./skins";
+import { directFeedback, type CuePlayer } from "../feedback/director";
 import { createTextOverlay } from "../feedback/overlay";
+import { createSensoryPlayer } from "../feedback/sensoryPlayer";
 import { attachDrag } from "../input/drag";
+import { snapBackAt, type PieceAt } from "../input/snapBack";
 import { createHud, createScoreStats } from "./hud";
-import { render, type DragView } from "../renderer/renderer";
+import { layoutGame, render, trayPieceOrigin, type DragView, type SnapBackView } from "../renderer/renderer";
 import { createGameOverScreen } from "./gameOver";
 import { createFrameLoop } from "./loop";
 import { createBackdropTransition } from "./backdrop";
@@ -23,7 +16,7 @@ import { createClearEffects } from "../renderer/effects/clearEffects";
 import { effectsOverlay } from "../renderer/effects/drawEffects";
 import { createPersistence } from "../persistence/persistence";
 import { loadSettings, saveSettings, type Settings } from "../persistence/settings";
-import { createAudio, type Sound } from "../audio/audio";
+import { createAudio } from "../audio/audio";
 import { createHaptics } from "../haptics/haptics";
 import { createSettingsSheet } from "./settingsSheet";
 import "./style.css";
@@ -37,17 +30,17 @@ const persistence = createPersistence(localStorageOrNull());
 let state: GameState = persistence.loadRun({ seed: Date.now() }); // resumes the saved Run
 let fits = trayFits(state); // recomputed after every Placement
 let drag: DragView | null = null;
+/** A rejected Piece flying back to its Tray slot (`start` is set on its first frame). */
+let snap: { slot: number; from: PieceAt; start: number | null } | null = null;
 const hud = createHud(document.body, canvas);
-/** Praise, COMBO ×N and NEW BEST! pops, drawn over the Board. */
-const overlay = createTextOverlay();
 
 const gameOver = createGameOverScreen(document.body, playAgain);
 const gameOverStats = createScoreStats(gameOver.stats);
-const skinStats = createSkinStats(gameOver.stats, (skin) => chooseSkin(skin));
+const skinStats = createSkinStats(gameOver.stats, (chosen) => chooseSkin(chosen));
 
 function showGameOver(): void {
   gameOverStats.update(state);
-  skinStats.update(state, activeSkin());
+  skinStats.update(state, shownSkin());
   gameOver.show();
 }
 
@@ -71,38 +64,57 @@ settingsSheet.addToggle("Sound", settings.sound, (sound) => {
   if (sound) audio.unlock(); // the toggle tap is a user gesture
 });
 settingsSheet.addToggle("Vibration", settings.haptics, (haptics) => changeSettings({ haptics }));
+// Browsers only start audio from a user gesture: (re)unlock on every touch while sound is on.
+document.addEventListener(
+  "pointerdown",
+  () => {
+    if (settings.sound) audio.unlock();
+  },
+  { capture: true },
+);
 
 // Skins (ticket 13): the chosen Skin is a setting; only unlocked Skins can be shown.
-/** The Skin to draw: the chosen one if unlocked, else the first. */
-function activeSkin(): SkinId {
-  return state.unlocked.includes(settings.skin) ? settings.skin : SKINS[0]!.id;
+const shownSkin = (): SkinId => activeSkin(state.unlocked, settings.skin);
+let skin = skinLook(shownSkin());
+const skinPicker = createSkinPicker(settingsSheet.content, (chosen) => chooseSkin(chosen));
+function chooseSkin(chosen: SkinId): void {
+  changeSettings({ skin: chosen });
+  refreshSkin();
 }
-const skinPicker = createSkinPicker(settingsSheet.content, (skin) => chooseSkin(skin));
-function chooseSkin(skin: SkinId): void {
-  changeSettings({ skin });
-  skinPicker.update(state.unlocked, activeSkin());
-  backdrop.setBase(skinLook(activeSkin()).backdrop);
+/** Re-derive the Skin on show (after a choice or an unlock) and update everything that shows it. */
+function refreshSkin(instant = false): void {
+  const id = shownSkin();
+  skin = skinLook(id);
+  skinPicker.update(state.unlocked, id);
+  backdrop.setBase(skin.backdrop, instant);
   loop.invalidate();
 }
-skinPicker.update(state.unlocked, activeSkin());
-// Browsers only start audio from a user gesture: (re)unlock on every touch.
-document.addEventListener("pointerdown", () => audio.unlock(), { capture: true });
 
-/** The director's sound and haptic cues go to `audio` / `haptics` (they check the settings). */
-function playSensoryCues(cues: readonly FeedbackCue[]): void {
-  const sounds: Sound[] = [];
-  for (const cue of cues) {
-    if (cue.kind === "sound") sounds.push(cue.sound);
-    else if (cue.kind === "haptic") haptics.vibrate(cue.pattern);
-  }
-  audio.play(sounds);
-}
+// Feedback players: each gets every Placement's cues and plays the kinds it handles.
+/** Praise, COMBO ×N, NEW BEST! and New Skin pops, drawn over the Board. */
+const overlay = createTextOverlay();
+/** Clear effects (ticket 10): Line flash, particles, shake, Board Clear flash. */
+const effects = createClearEffects();
+const players: readonly CuePlayer[] = [
+  overlay,
+  effects,
+  createSensoryPlayer(audio, haptics),
+  {
+    // A Skin unlocked mid-Run: the picker shows it at once (the banner is the overlay's).
+    play(cues) {
+      if (cues.some((c) => c.kind === "skinUnlocked")) refreshSkin();
+    },
+    reset() {},
+    busy: () => false,
+  },
+];
 
 /** Start a fresh Run: empty Board, new Tray; Best Score, Lifetime Points and Skins carried over. */
 function playAgain(): void {
   drag = null;
+  snap = null;
   gameOver.hide();
-  overlay.reset();
+  for (const player of players) player.reset(); // no pops, particles or shake carry over
   setState(create({ seed: Date.now(), profile: profileOf(state) }));
   hud.reset(state);
 }
@@ -121,25 +133,34 @@ function resize(): void {
   draw(); // resizing clears the canvas: redraw now, not next frame
 }
 
-// Clear effects (ticket 10). TODO(review): fold into ticket 09's feedback director if it grows one.
-const effects = createClearEffects();
 let lastNow = 0;
 
 function draw(now: number = lastNow): void {
   lastNow = now;
   const preview = drag ? queryFit(state, drag.slot, drag.origin) : null;
-  const skin = skinLook(activeSkin());
   const boardOverlay = effectsOverlay(effects.frame(now), state.board, skin);
   render(ctx!, cssWidth, cssHeight, {
     skin,
     state,
     drag,
+    snapBack: snapBackView(now),
     preview,
     trayFits: fits,
     backdrop: backdrop.current(),
     boardOverlay,
     texts: overlay.frame(now),
   });
+}
+
+/** Where the snapping-back Piece is this frame (it heads for its slot in the current layout). */
+function snapBackView(now: number): SnapBackView | null {
+  const entry = snap && state.tray[snap.slot];
+  if (!snap || !entry) return null;
+  snap.start ??= now;
+  const layout = layoutGame(cssWidth, cssHeight, state.board.length);
+  const home = { ...trayPieceOrigin(layout, snap.slot, entry.piece), cellSize: layout.trayCellSize };
+  const at = snapBackAt(snap.from, home, now - snap.start);
+  return at && { slot: snap.slot, ...at };
 }
 
 /** All redraws go through this loop; animations register with `loop.animate`. */
@@ -151,9 +172,10 @@ const backdrop = createBackdropTransition(
   (b) => {
     document.body.style.background = b.background;
   },
-  skinLook(activeSkin()).backdrop, // Palette Shifts tint the chosen Skin's base colors
+  skin.backdrop, // Palette Shifts tint the chosen Skin's base colors
 );
 backdrop.setLevel(state.paletteLevel, true); // a resumed Run opens at its colors, no blend
+refreshSkin(true);
 
 function setState(next: GameState): void {
   state = next;
@@ -186,28 +208,35 @@ attachDrag(canvas, {
   getSize: () => ({ width: cssWidth, height: cssHeight }),
   place(slot, origin) {
     const result = attemptPlacement(state, slot, origin);
-    if (!result.ok) return false; // snaps back: the Piece stays in its Tray slot
+    if (!result.ok) return false; // the drag input snaps the Piece back to its Tray slot
     setState(result.state);
     // State changes at once; effects only draw on top, so the next Piece can be dragged right away.
     // performance.now() shares the rAF timestamp's time base.
     const now = performance.now();
     const cues = directFeedback(result.events);
-    playSensoryCues(cues);
-    effects.onPlacement(result.events, now);
-    loop.animate((t) => effects.active(t));
+    for (const player of players) {
+      player.play(cues, now);
+      if (player.busy(now)) loop.animate((t) => player.busy(t));
+    }
     hud.update(state, now);
     loop.animate((t) => hud.tick(t));
-    overlay.play(cues, now);
-    if (overlay.busy(now)) loop.animate((t) => overlay.busy(t));
-    if (result.events.some((e) => e.type === "skinUnlocked")) {
-      skinPicker.update(state.unlocked, activeSkin()); // the "New Skin unlocked!" banner is in `cues`
-    }
-    if (result.events.some((e) => e.type === "gameOver")) showGameOver();
+    if (state.over) showGameOver();
     return true;
   },
   changed(next) {
     drag = next;
+    if (next && snap?.slot === next.slot) snap = null; // picked up again mid-flight
     loop.invalidate();
+  },
+  snapBack(slot, from) {
+    const flight = { slot, from, start: null };
+    snap = flight;
+    loop.animate((t) => {
+      if (snap !== flight) return false; // replaced, picked up again, or a new Run
+      if (snapBackView(t)) return true;
+      snap = null; // home: the Tray draws it in its slot again
+      return false;
+    });
   },
 });
 

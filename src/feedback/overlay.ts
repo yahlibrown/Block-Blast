@@ -2,7 +2,7 @@
 // as timed pops. Pure and time-driven: the shell passes `now` (rAF time, ms)
 // and hands `frame(now)` to the renderer, which draws it over the Board.
 // It's drawn on the canvas and owns no input, so it never blocks a drag.
-import type { FeedbackCue } from "./director";
+import type { CuePlayer, FeedbackCue } from "./director";
 
 export type PopRole = "praise" | "combo" | "newBest" | "skinUnlocked";
 
@@ -20,13 +20,9 @@ export interface PopFrame {
   readonly rise: number;
 }
 
-export interface TextOverlay {
+export interface TextOverlay extends CuePlayer {
   play(cues: readonly FeedbackCue[], now: number): void;
-  /** Drop everything (new Run). */
-  reset(): void;
   frame(now: number): PopFrame[];
-  /** Is anything moving at `now`? (The frame loop keeps animating while true.) */
-  busy(now: number): boolean;
 }
 
 /** Timings in ms. UI feel constants, not core balance. */

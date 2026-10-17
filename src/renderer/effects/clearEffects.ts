@@ -1,31 +1,9 @@
-// Clear effects simulation (ticket 10): Line flash, block particles, screen shake, Board Clear
-// celebration. Pure: no DOM, no timers. Driven by core Placement events and the frame loop's `now`.
+// Clear effects player (ticket 10): Line flash, block particles, screen shake, Board Clear
+// celebration. Pure: no DOM, no timers, no game rules. It plays the feedback director's
+// `burst` / `shake` / `boardFlash` cues against the frame loop's `now`.
 // Positions/lengths are in Board Cells so the drawing code can scale them to any layout.
-//
-// NOTE for review: ticket 09's feedback director (`src/feedback/`) is meant to own "core events →
-// particles/shake". This module is driven straight from `shell/main.ts` for now; the director can
-// later call `onPlacement` itself (the interface takes plain core events).
-import type { GameEvent } from "../../core";
-import { TUNING } from "../../tuning/tuning";
-
-const FX = TUNING.effects;
-
-export interface ShakeInput {
-  /** Lines in the Clear (Multi-Clear size). */
-  readonly lines: number;
-  /** Combo level after this Clear (1 on the first Clear of a streak). */
-  readonly combo: number;
-  readonly boardClear: boolean;
-}
-
-/** Shake amplitude in Cells for one Clear. */
-export function shakeMagnitude({ lines, combo, boardClear }: ShakeInput): number {
-  const s = FX.shake;
-  const base =
-    s.base + s.perExtraLine * Math.max(0, lines - 1) + s.perComboLevel * Math.max(0, combo - 1);
-  // A Board Clear always beats the ordinary cap: it's the rarest, loudest moment.
-  return boardClear ? s.max + FX.boardClear.shakeBonus : Math.min(s.max, base);
-}
+import type { CuePlayer, FeedbackCue } from "../../feedback/director";
+import { EFFECTS as FX } from "./effectsTuning";
 
 export interface FlashCell {
   readonly row: number;
@@ -57,11 +35,9 @@ export interface EffectsFrame {
   readonly boardFlash: number;
 }
 
-export interface ClearEffects {
-  /** Feed every Placement's core events; starts effects for a Clear and ignores everything else. */
-  onPlacement(events: readonly GameEvent[], now: number): void;
-  /** True while anything is still playing at `now` (use it as the frame loop's animation step). */
-  active(now: number): boolean;
+export interface ClearEffects extends CuePlayer {
+  /** Starts the effect cues (`burst`, `shake`, `boardFlash`); ignores every other kind. */
+  play(cues: readonly FeedbackCue[], now: number): void;
   /** What to draw at `now` (`now` must not go backwards). */
   frame(now: number): EffectsFrame;
 }
@@ -84,7 +60,7 @@ interface Timed {
 /** `random` returns [0, 1) like Math.random; inject a fixed one in tests. */
 export function createClearEffects(random: () => number = Math.random): ClearEffects {
   const P = FX.particles;
-  const B = FX.boardClear;
+  const B = FX.big;
   let particles: Particle[] = [];
   let flashes: (Timed & { readonly cells: readonly FlashCell[] })[] = [];
   let shakes: (Timed & { readonly amp: number })[] = [];
@@ -111,29 +87,36 @@ export function createClearEffects(random: () => number = Math.random): ClearEff
   }
 
   return {
-    onPlacement(events, now) {
-      const cleared = events.find((e) => e.type === "linesCleared");
-      if (!cleared) return;
-      const comboEvent = events.find((e) => e.type === "comboIncreased");
-      const combo = comboEvent ? comboEvent.level : 1;
-      const isBoardClear = events.some((e) => e.type === "boardClear");
-
-      const burstAt = now + FX.flashMs;
-      flashes.push({ start: now, end: burstAt, cells: cleared.cells });
-      const perBlock = Math.round(P.perBlock * (isBoardClear ? B.particleMultiplier : 1));
-      for (const cell of cleared.cells) {
-        spawn(cell, burstAt, perBlock, isBoardClear ? B.speedMultiplier : 1);
+    play(cues, now) {
+      for (const cue of cues) {
+        switch (cue.kind) {
+          case "burst": {
+            const burstAt = now + FX.flashMs;
+            flashes.push({ start: now, end: burstAt, cells: cue.cells });
+            const perBlock = Math.round(P.perBlock * (cue.big ? B.particleMultiplier : 1));
+            for (const cell of cue.cells) spawn(cell, burstAt, perBlock, cue.big ? B.speedMultiplier : 1);
+            // Over the cap: drop the oldest particles (keeps a big Multi-Clear cheap on the phone).
+            if (particles.length > P.max) particles = particles.slice(particles.length - P.max);
+            break;
+          }
+          case "shake":
+            shakes.push({ start: now, end: now + cue.durationMs, amp: cue.magnitude });
+            break;
+          case "boardFlash":
+            boardFlashes.push({ start: now, end: now + FX.boardFlashMs });
+            break;
+        }
       }
-      // Over the cap: drop the oldest particles (keeps a big Multi-Clear cheap on the phone).
-      if (particles.length > P.max) particles = particles.slice(particles.length - P.max);
-
-      const amp = shakeMagnitude({ lines: cleared.lines, combo, boardClear: isBoardClear });
-      const shakeMs = isBoardClear ? B.shakeDurationMs : FX.shake.durationMs;
-      shakes.push({ start: now, end: now + shakeMs, amp });
-      if (isBoardClear) boardFlashes.push({ start: now, end: now + B.flashMs });
     },
 
-    active(now) {
+    reset() {
+      particles = [];
+      flashes = [];
+      shakes = [];
+      boardFlashes = [];
+    },
+
+    busy(now) {
       return (
         flashes.some(running(now)) ||
         shakes.some(running(now)) ||

@@ -64,10 +64,15 @@ The app icons in `public/` are generated from `public/icon.svg`. After editing t
 ## Layout
 
 - `src/core/`: the pure game core (rules, state, events). No DOM, timers, audio or storage. `src/core/index.ts` is its public interface, and the only thing tests and other modules import.
-- `src/tuning/`: the single table of balance numbers.
-- `src/renderer/`: Canvas 2D drawing.
-- `src/shell/`: the entry point, page and screens. It wires everything together.
+- `src/tuning/`: the single table of balance numbers, read by the core.
+- `src/input/`: pointer drag from the Tray to the Board, and the snap-back of a Piece that doesn't fit.
+- `src/feedback/`: the feedback director (core events → cues: Praise, Combo, NEW BEST!, Clear effects, sounds, vibration) and the players for its text and sensory cues.
+- `src/renderer/`: Canvas 2D drawing, Skin looks, Palette Shift colors, and the Clear effects player (`effects/`).
+- `src/audio/`: generated Web Audio sounds.
+- `src/haptics/`: the Vibration API wrapper.
+- `src/persistence/`: localStorage save and resume, profile and settings.
+- `src/shell/`: the entry point, page and screens (HUD, Game Over, settings, Skin picker), and the frame loop. It wires everything together.
+- `src/testing/`: shared helpers for core tests (they use only the core's public interface).
 - `config/`: build-time helpers for `vite.config.ts` (e.g. the GitHub Pages base path).
 - `public/`: app icons and other files served as-is.
 - `scripts/setup-github-pages.sh`: the one-time GitHub setup wizard.
-- Later: `src/input/`, `src/feedback/`, `src/audio/`, `src/haptics/`, `src/persistence/`.
