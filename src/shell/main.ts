@@ -2,6 +2,7 @@
 import { attemptPlacement, create, queryFit, trayFits, type GameState } from "../core";
 import { attachDrag } from "../input/drag";
 import { render, type DragView } from "../renderer/renderer";
+import { createGameOverScreen } from "./gameOver";
 import { createFrameLoop } from "./loop";
 import "./style.css";
 
@@ -13,6 +14,15 @@ if (!ctx) throw new Error("Canvas 2D not supported");
 let state: GameState = create({ seed: Date.now() });
 let fits = trayFits(state); // recomputed after every Placement
 let drag: DragView | null = null;
+
+const gameOver = createGameOverScreen(document.body, playAgain);
+
+/** Start a fresh Run: empty Board, new Tray. */
+function playAgain(): void {
+  drag = null;
+  gameOver.hide();
+  setState(create({ seed: Date.now() }));
+}
 
 let cssWidth = 0;
 let cssHeight = 0;
@@ -53,6 +63,7 @@ attachDrag(canvas, {
     const result = attemptPlacement(state, slot, origin);
     if (!result.ok) return false; // snaps back: the Piece stays in its Tray slot
     setState(result.state);
+    if (result.events.some((e) => e.type === "gameOver")) gameOver.show();
     return true;
   },
   changed(next) {
