@@ -6,9 +6,9 @@ import { directFeedback, type CuePlayer } from "../feedback/director";
 import { createTextOverlay } from "../feedback/overlay";
 import { createSensoryPlayer } from "../feedback/sensoryPlayer";
 import { attachDrag } from "../input/drag";
-import { snapBackAt, type PieceAt } from "../input/snapBack";
+import { returnAt, type PieceAt } from "../input/returnFlight";
 import { createHud, createScoreStats } from "./hud";
-import { layoutGame, render, trayPieceOrigin, type DragView, type SnapBackView } from "../renderer/renderer";
+import { layoutGame, render, trayPieceOrigin, type DragView, type ReturnView } from "../renderer/renderer";
 import { createGameOverScreen } from "./gameOver";
 import { createFrameLoop } from "./loop";
 import { createBackdropTransition } from "./backdrop";
@@ -31,7 +31,7 @@ let state: GameState = persistence.loadRun({ seed: Date.now() }); // resumes the
 let fits = trayFits(state); // recomputed after every Placement
 let drag: DragView | null = null;
 /** A rejected Piece flying back to its Tray slot (`start` is set on its first frame). */
-let snap: { slot: number; from: PieceAt; start: number | null } | null = null;
+let returning: { slot: number; from: PieceAt; start: number | null } | null = null;
 const hud = createHud(document.body, canvas);
 
 const gameOver = createGameOverScreen(document.body, playAgain);
@@ -112,7 +112,7 @@ const players: readonly CuePlayer[] = [
 /** Start a fresh Run: empty Board, new Tray; Best Score, Lifetime Points and Skins carried over. */
 function playAgain(): void {
   drag = null;
-  snap = null;
+  returning = null;
   gameOver.hide();
   for (const player of players) player.reset(); // no pops, particles or shake carry over
   setState(create({ seed: Date.now(), profile: profileOf(state) }));
@@ -143,7 +143,7 @@ function draw(now: number = lastNow): void {
     skin,
     state,
     drag,
-    snapBack: snapBackView(now),
+    returning: returnView(now),
     preview,
     trayFits: fits,
     backdrop: backdrop.current(),
@@ -152,15 +152,15 @@ function draw(now: number = lastNow): void {
   });
 }
 
-/** Where the snapping-back Piece is this frame (it heads for its slot in the current layout). */
-function snapBackView(now: number): SnapBackView | null {
-  const entry = snap && state.tray[snap.slot];
-  if (!snap || !entry) return null;
-  snap.start ??= now;
+/** Where the Returning Piece is this frame (it heads for its slot in the current layout). */
+function returnView(now: number): ReturnView | null {
+  const entry = returning && state.tray[returning.slot];
+  if (!returning || !entry) return null;
+  returning.start ??= now;
   const layout = layoutGame(cssWidth, cssHeight, state.board.length);
-  const home = { ...trayPieceOrigin(layout, snap.slot, entry.piece), cellSize: layout.trayCellSize };
-  const at = snapBackAt(snap.from, home, now - snap.start);
-  return at && { slot: snap.slot, ...at };
+  const home = { ...trayPieceOrigin(layout, returning.slot, entry.piece), cellSize: layout.trayCellSize };
+  const at = returnAt(returning.from, home, now - returning.start);
+  return at && { slot: returning.slot, ...at };
 }
 
 /** All redraws go through this loop; animations register with `loop.animate`. */
@@ -206,9 +206,10 @@ if (state.over) {
 attachDrag(canvas, {
   getState: () => state,
   getSize: () => ({ width: cssWidth, height: cssHeight }),
+  fits: (slot, origin) => queryFit(state, slot, origin).fits,
   place(slot, origin) {
     const result = attemptPlacement(state, slot, origin);
-    if (!result.ok) return false; // the drag input snaps the Piece back to its Tray slot
+    if (!result.ok) return false; // the drag input Returns the Piece to its Tray slot
     setState(result.state);
     // State changes at once; effects only draw on top, so the next Piece can be dragged right away.
     // performance.now() shares the rAF timestamp's time base.
@@ -225,16 +226,16 @@ attachDrag(canvas, {
   },
   changed(next) {
     drag = next;
-    if (next && snap?.slot === next.slot) snap = null; // picked up again mid-flight
+    if (next && returning?.slot === next.slot) returning = null; // picked up again mid-flight
     loop.invalidate();
   },
-  snapBack(slot, from) {
+  returnToTray(slot, from) {
     const flight = { slot, from, start: null };
-    snap = flight;
+    returning = flight;
     loop.animate((t) => {
-      if (snap !== flight) return false; // replaced, picked up again, or a new Run
-      if (snapBackView(t)) return true;
-      snap = null; // home: the Tray draws it in its slot again
+      if (returning !== flight) return false; // replaced, picked up again, or a new Run
+      if (returnView(t)) return true;
+      returning = null; // home: the Tray draws it in its slot again
       return false;
     });
   },

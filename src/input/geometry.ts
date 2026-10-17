@@ -32,12 +32,15 @@ export function liftedTopLeft(
   return { x: finger.x - width / 2, y: finger.y - height - lift };
 }
 
+/** Unrounded Board position, in Cells, of a Piece whose top-left is drawn at `topLeft`. */
+export function boardPosition(board: BoardLayout, topLeft: Point): { row: number; col: number } {
+  return { row: (topLeft.y - board.y) / board.cellSize, col: (topLeft.x - board.x) / board.cellSize };
+}
+
 /** Board origin (top-left Cell) for a Piece whose top-left is drawn at `topLeft`: the nearest Cell. */
 export function boardOrigin(board: BoardLayout, topLeft: Point): Position {
-  return {
-    row: Math.round((topLeft.y - board.y) / board.cellSize),
-    col: Math.round((topLeft.x - board.x) / board.cellSize),
-  };
+  const { row, col } = boardPosition(board, topLeft);
+  return { row: Math.round(row), col: Math.round(col) };
 }
 
 /**

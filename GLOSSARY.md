@@ -32,6 +32,14 @@ _Avoid_: Move, swipe, hold
 A see-through copy of the dragged **Piece** on the **Board**, in the **Cells** it would fill if let go now; shown only where it fits.
 _Avoid_: Shadow, preview, hint
 
+**Snap**:
+During a **Drag**, when the **Piece** doesn't fit where it is drawn, the **Ghost** moving to the nearest spot within reach where it does fit; letting go there makes the **Placement**.
+_Avoid_: Magnet, assist, auto-aim
+
+**Return**:
+A **Piece** let go without making a **Placement** flying back to its **Tray** slot.
+_Avoid_: Snap back, bounce
+
 **Line**:
 A full row or full column of the **Board**.
 

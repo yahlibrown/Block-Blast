@@ -65,7 +65,7 @@ The app icons in `public/` are generated from `public/icon.svg`. After editing t
 
 - `src/core/`: the pure game core (rules, state, events). No DOM, timers, audio or storage. `src/core/index.ts` is its public interface, and the only thing tests and other modules import.
 - `src/tuning/`: the single table of balance numbers, read by the core.
-- `src/input/`: pointer drag from the Tray to the Board, and the snap-back of a Piece that doesn't fit.
+- `src/input/`: pointer drag from the Tray to the Board, the Snap to the nearest spot that fits, and the Return of a Piece let go without a Placement.
 - `src/feedback/`: the feedback director (core events → cues: Praise, Combo, NEW BEST!, Clear effects, sounds, vibration) and the players for its text and sensory cues.
 - `src/renderer/`: Canvas 2D drawing, Skin looks, Palette Shift colors, and the Clear effects player (`effects/`).
 - `src/audio/`: generated Web Audio sounds.
