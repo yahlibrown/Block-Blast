@@ -8,6 +8,16 @@ export interface Point {
   readonly y: number;
 }
 
+export interface Size {
+  readonly width: number;
+  readonly height: number;
+}
+
+/** Pixel size of a Piece drawn at `cellSize` px per Cell. */
+export function pieceSize(piece: { readonly rows: number; readonly cols: number }, cellSize: number): Size {
+  return { width: piece.cols * cellSize, height: piece.rows * cellSize };
+}
+
 /**
  * Top-left of a dragged Piece drawn at `cellSize`: centered on the finger
  * horizontally, with its bottom edge `lift` px above it so the thumb doesn't hide it.
@@ -18,10 +28,8 @@ export function liftedTopLeft(
   cellSize: number,
   lift: number,
 ): Point {
-  return {
-    x: finger.x - (piece.cols * cellSize) / 2,
-    y: finger.y - piece.rows * cellSize - lift,
-  };
+  const { width, height } = pieceSize(piece, cellSize);
+  return { x: finger.x - width / 2, y: finger.y - height - lift };
 }
 
 /** Board origin (top-left Cell) for a Piece whose top-left is drawn at `topLeft`: the nearest Cell. */
@@ -33,22 +41,18 @@ export function boardOrigin(board: BoardLayout, topLeft: Point): Position {
 }
 
 /**
- * Top-left of an amplified Drag: the Piece moves `gain`× as far from where it was
- * lifted as the finger has moved from where it grabbed, so a short thumb movement covers the Board.
+ * Top-left of an amplified Drag: the Piece moves `gain`× as far from `anchorAt` as the
+ * finger has moved from `anchorFinger`, so a short thumb movement covers the Board.
  */
-export function amplifiedTopLeft(lifted: Point, grab: Point, finger: Point, gain: number): Point {
+export function amplifiedTopLeft(anchorAt: Point, anchorFinger: Point, finger: Point, gain: number): Point {
   return {
-    x: lifted.x + (finger.x - grab.x) * gain,
-    y: lifted.y + (finger.y - grab.y) * gain,
+    x: anchorAt.x + (finger.x - anchorFinger.x) * gain,
+    y: anchorAt.y + (finger.y - anchorFinger.y) * gain,
   };
 }
 
 /** Keep a Piece of `size` px fully inside the `screen`, even if the finger goes further. */
-export function clampOnScreen(
-  topLeft: Point,
-  size: { readonly width: number; readonly height: number },
-  screen: { readonly width: number; readonly height: number },
-): Point {
+export function clampOnScreen(topLeft: Point, size: Size, screen: Size): Point {
   const clamp = (v: number, max: number) => Math.min(Math.max(v, 0), Math.max(0, max));
   return { x: clamp(topLeft.x, screen.width - size.width), y: clamp(topLeft.y, screen.height - size.height) };
 }
