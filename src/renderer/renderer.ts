@@ -1,5 +1,6 @@
 // Canvas 2D renderer. Draws game state; holds no game rules.
 import type { Board, Cell, FitResult, GameState, Piece, Position } from "../core";
+import { BASE_BACKDROP, withAlpha, type Backdrop } from "./palette";
 
 export interface BoardLayout {
   /** Top-left of the Board, in CSS pixels. */
@@ -40,10 +41,33 @@ export interface View {
   readonly preview: FitResult | null;
   /** Core Tray fit query: a slot whose Piece fits nowhere is drawn dimmed. */
   readonly trayFits: readonly boolean[];
+  /** Background + glow colors (Palette Shift, mid-transition). Defaults to the base look. */
+  readonly backdrop?: Backdrop;
+  /** Clear effects hook (ticket 10): shakes the Board and draws over it, under the Tray and drag. */
+  readonly boardOverlay?: BoardOverlay;
+  /** Feedback texts (Praise, COMBO ×N, NEW BEST!) to draw over everything this frame. */
+  readonly texts?: readonly OverlayText[];
+}
+
+export interface BoardOverlay {
+  /** Board offset, in Cells. */
+  readonly shake: { readonly x: number; readonly y: number };
+  draw(ctx: CanvasRenderingContext2D, board: BoardLayout): void;
+}
+
+/** One feedback text pop, already animated (the feedback overlay computes these). */
+export interface OverlayText {
+  readonly role: "praise" | "combo" | "newBest";
+  readonly text: string;
+  /** Praise strength 0..4. */
+  readonly tier: number;
+  readonly scale: number;
+  readonly alpha: number;
+  /** Upward drift, in Cells. */
+  readonly rise: number;
 }
 
 const COLORS = {
-  background: "#1b2440",
   boardBackground: "#121a30",
   emptyCell: "#232f52",
   /** Wash over the Lines that would Clear. */
@@ -53,6 +77,9 @@ const COLORS = {
 /** Opacity of ghost preview Cells, and of Tray Pieces that fit nowhere. */
 const GHOST_ALPHA = 0.4;
 const DIMMED_ALPHA = 0.3;
+/** Strength of the glow halo behind the Board, and of its rim. */
+const GLOW_ALPHA = 0.35;
+const GLOW_RIM_ALPHA = 0.8;
 
 /** Block color per core color index (a Skin will replace this in ticket 13). */
 const BLOCK_COLORS = [
@@ -95,7 +122,8 @@ export function render(
   height: number,
   view: View,
 ): void {
-  ctx.fillStyle = COLORS.background;
+  const backdrop = view.backdrop ?? BASE_BACKDROP;
+  ctx.fillStyle = backdrop.background;
   ctx.fillRect(0, 0, width, height);
 
   const { board, tray } = view.state;
@@ -115,6 +143,13 @@ export function render(
       }
     });
   }
+  const overlay = view.boardOverlay;
+  ctx.save();
+  if (overlay) {
+    const { cellSize } = layout.board;
+    ctx.translate(overlay.shake.x * cellSize, overlay.shake.y * cellSize);
+  }
+  drawGlow(ctx, layout.board, columns, backdrop.glow); // the halo shakes with the Board
   const recolor = new Set(clearing.map((p) => p.row * columns + p.col));
   drawBoard(ctx, layout.board, board, (r, c, cell) =>
     cell !== null && dragged && recolor.has(r * columns + c) ? dragged.color : cell,
@@ -130,6 +165,8 @@ export function render(
     ctx.fillStyle = COLORS.lineHighlight;
     for (const p of clearing) drawCell(ctx, x + p.col * cellSize, y + p.row * cellSize, cellSize);
   }
+  overlay?.draw(ctx, layout.board);
+  ctx.restore();
 
   tray.forEach((entry, slot) => {
     if (!entry || view.drag?.slot === slot) return;
@@ -142,6 +179,53 @@ export function render(
   if (view.drag && dragged) {
     drawPiece(ctx, dragged.piece, dragged.color, view.drag.x, view.drag.y, layout.board.cellSize);
   }
+
+  for (const text of view.texts ?? []) drawOverlayText(ctx, layout.board, columns, text);
+}
+
+/** Where each feedback text sits, as a fraction of the Board's height from its top. */
+const TEXT_ROW: Record<OverlayText["role"], number> = { newBest: 0.22, praise: 0.45, combo: 0.66 };
+/** Praise colors by tier: white "Good!" up to violet "Unbelievable!". */
+const PRAISE_COLORS = ["#ffffff", "#ffe14d", "#ffb330", "#ff6fb5", "#c58bff"] as const;
+
+function drawOverlayText(
+  ctx: CanvasRenderingContext2D,
+  board: BoardLayout,
+  columns: number,
+  pop: OverlayText,
+): void {
+  if (pop.alpha <= 0) return;
+  const { cellSize } = board;
+  const side = cellSize * columns;
+  const size =
+    pop.role === "praise"
+      ? cellSize * (0.85 + 0.12 * pop.tier)
+      : pop.role === "newBest"
+        ? cellSize * 1.0
+        : cellSize * 0.7;
+  const color =
+    pop.role === "praise"
+      ? PRAISE_COLORS[Math.min(pop.tier, PRAISE_COLORS.length - 1)]!
+      : pop.role === "newBest"
+        ? "#ffd166"
+        : "#7ef0ff";
+  ctx.save();
+  ctx.globalAlpha = Math.min(1, pop.alpha);
+  ctx.translate(board.x + side / 2, board.y + side * TEXT_ROW[pop.role] - pop.rise * cellSize);
+  ctx.scale(pop.scale, pop.scale);
+  ctx.font = `900 ${Math.round(size)}px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.lineJoin = "round";
+  ctx.shadowColor = color;
+  ctx.shadowBlur = size * 0.5;
+  ctx.lineWidth = size * 0.16;
+  ctx.strokeStyle = "rgba(12, 16, 34, 0.9)";
+  ctx.strokeText(pop.text, 0, 0);
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = color;
+  ctx.fillText(pop.text, 0, 0);
+  ctx.restore();
 }
 
 /** Top-left of a Tray Piece as drawn at rest, in CSS pixels. */
@@ -152,6 +236,26 @@ export function trayPieceOrigin(layout: GameLayout, slot: number, piece: Piece):
     x: rect.x + (rect.w - piece.cols * size) / 2,
     y: rect.y + (rect.h - piece.rows * size) / 2,
   };
+}
+
+/** Soft halo of the glow color behind the Board (the Palette Shift's glow). */
+function drawGlow(ctx: CanvasRenderingContext2D, layout: BoardLayout, columns: number, glow: string): void {
+  const side = layout.cellSize * columns;
+  const cx = layout.x + side / 2;
+  const cy = layout.y + side / 2;
+  const halo = ctx.createRadialGradient(cx, cy, side * 0.3, cx, cy, side * 0.95);
+  halo.addColorStop(0, withAlpha(glow, GLOW_ALPHA));
+  halo.addColorStop(1, withAlpha(glow, 0));
+  ctx.fillStyle = halo;
+  ctx.fillRect(cx - side, cy - side, side * 2, side * 2);
+  // A tighter rim of light hugging the Board frame.
+  ctx.save();
+  ctx.shadowColor = withAlpha(glow, GLOW_RIM_ALPHA);
+  ctx.shadowBlur = layout.cellSize * 0.8;
+  ctx.fillStyle = COLORS.boardBackground;
+  const pad = Math.max(1, layout.cellSize * 0.06);
+  roundRect(ctx, layout.x - pad, layout.y - pad, side + pad * 2, side + pad * 2, layout.cellSize * 0.18);
+  ctx.restore();
 }
 
 function drawBoard(
@@ -189,12 +293,12 @@ function drawPiece(
 }
 
 /** One block or empty Cell whose square starts at (x, y), in the current fill style. */
-function drawCell(ctx: CanvasRenderingContext2D, x: number, y: number, cellSize: number): void {
+export function drawCell(ctx: CanvasRenderingContext2D, x: number, y: number, cellSize: number): void {
   const pad = Math.max(1, cellSize * 0.06);
   roundRect(ctx, x + pad / 2, y + pad / 2, cellSize - pad, cellSize - pad, cellSize * 0.12);
 }
 
-function blockColor(index: number): string {
+export function blockColor(index: number): string {
   return BLOCK_COLORS[index % BLOCK_COLORS.length]!;
 }
 

@@ -46,6 +46,7 @@ describe("resuming a Run", () => {
       rng: 12345,
       score: 420,
       best: 900,
+      runStartBest: 700,
       combo: 3,
       dry: 2,
     });
@@ -59,9 +60,11 @@ describe("resuming a Run", () => {
       rng: 12345,
       score: 420,
       best: 900,
+      runStartBest: 700,
       combo: 3,
       dry: 2,
       over: false,
+      paletteLevel: 0,
     });
   });
 

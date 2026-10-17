@@ -7,13 +7,23 @@
 
 **Blocked by:** 05 (Scoring, Combo and Board Clear), 08 (Save and resume)
 
-**Status:** ready-for-agent
+**Status:** ready-for-human
 
-- [ ] The landing "thunk" plays on every Placement
-- [ ] A Clear sound plays, and the Combo chime rises in pitch with each Combo step
-- [ ] Audio starts correctly after the first user gesture (browser autoplay rules)
-- [ ] Vibration patterns scale with Clear size; a Board Clear has its own pattern
-- [ ] Haptics do nothing, without errors, where vibration is unsupported
-- [ ] A gear icon opens a settings sheet with sound and haptics toggles; toggles take effect immediately
-- [ ] Settings survive reloads and fall back to defaults (both on) if the saved data is invalid
+- [x] The landing "thunk" plays on every Placement
+- [x] A Clear sound plays, and the Combo chime rises in pitch with each Combo step
+- [x] Audio starts correctly after the first user gesture (browser autoplay rules)
+- [x] Vibration patterns scale with Clear size; a Board Clear has its own pattern
+- [x] Haptics do nothing, without errors, where vibration is unsupported
+- [x] A gear icon opens a settings sheet with sound and haptics toggles; toggles take effect immediately
+- [x] Settings survive reloads and fall back to defaults (both on) if the saved data is invalid
 - [ ] Playtested on the Android phone: sound and vibration both work and can each be turned off
+
+## Comments
+
+Implemented on branch `ticket-11-sound-haptics-settings`. The cue mapping (which sound, chime pitch per Combo level, vibration pattern per Clear size / Board Clear), the haptics wrapper and the settings load/save/fallback are unit-tested. The synthesized sounds themselves and the sheet UI were not checked on a device.
+
+For the human to verify on the Android phone (and once on desktop):
+- The thunk, Clear whoosh, rising Combo chime and Board Clear fanfare sound good and aren't too loud. Tune them in `src/audio/audio.ts`; pitches and vibration lengths are in `src/feedback/sensory.ts`.
+- Sound starts after the first touch, and still works after switching apps and coming back.
+- Vibration is felt, and gets stronger for bigger Clears and a Board Clear.
+- The gear (top-left of the score band) opens the sheet. Turning Sound or Vibration off silences it right away, and the choice survives a reload.

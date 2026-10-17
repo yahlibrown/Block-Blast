@@ -1,6 +1,16 @@
 import { describe, expect, it } from "vitest";
 import { attemptPlacement, restore, type GameEvent } from "../core";
-import { sensoryCues } from "./sensory";
+import type { Sound } from "../audio/audio";
+import { directFeedback } from "./director";
+
+/** The sound and vibration part of the director's cues for one Placement. */
+function sensoryCues(events: readonly GameEvent[]): { sounds: Sound[]; vibration: readonly number[] | null } {
+  const cues = directFeedback(events);
+  const sounds = cues.flatMap((c) => (c.kind === "sound" ? [c.sound] : []));
+  const haptics = cues.flatMap((c) => (c.kind === "haptic" ? [c.pattern] : []));
+  expect(haptics.length).toBeLessThanOrEqual(1);
+  return { sounds, vibration: haptics[0] ?? null };
+}
 
 /** Events from a real Placement: a dot dropped at `origin` on a Board drawn as art ("#" filled). */
 function place(
@@ -47,7 +57,7 @@ const chimeOf = (events: readonly GameEvent[]) => {
   return chime;
 };
 
-describe("sensory cues", () => {
+describe("sound and haptic cues", () => {
   it("a Placement without a Clear thunks and taps", () => {
     const cues = sensoryCues(place(emptyBoard(), { row: 0, col: 0 }));
 

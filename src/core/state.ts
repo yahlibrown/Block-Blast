@@ -34,12 +34,19 @@ export interface GameState {
   readonly score: number;
   /** Best Score: the highest score reached in any Run (kept up to date mid-Run). */
   readonly best: number;
+  /**
+   * The Best Score as it stood when this Run started. NEW BEST fires the first
+   * time the score passes it (never when it is 0). `best` moves mid-Run; this doesn't.
+   */
+  readonly runStartBest: number;
   /** Combo level: +1 per Placement that Clears; 0 = no streak. */
   readonly combo: number;
   /** Placements in a row without a Clear (reset by a Clear). */
   readonly dry: number;
   /** Game Over: no remaining Tray Piece fits. Final; Placements are then rejected. */
   readonly over: boolean;
+  /** Palette Shift level reached this Run (0 at the start of every Run). */
+  readonly paletteLevel: number;
 }
 
 export function emptyBoard(): Cell[][] {

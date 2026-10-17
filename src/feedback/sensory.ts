@@ -1,24 +1,11 @@
-// Sensory cues: which sounds to play and which vibration to fire for the core
-// events of one Placement. Pure (no audio, no navigator), so it's unit-tested;
-// the shell hands the result to `audio` and `haptics`.
-//
-// Standalone for now: ticket 09's feedback director is expected to fold this
-// into its cue output (events → Praise, particles, shake, sounds, vibration).
+// Sound and vibration mapping used by the feedback director (`director.ts`):
+// which sounds a core event plays, and which vibration pattern it calls for.
+// Pure (no audio, no navigator). Tested through `directFeedback`.
 //
 // Feel constants (pitches, vibration ms) live here next to the feedback code,
 // not in TUNING, which is for core balance numbers.
 import type { GameEvent } from "../core";
 import type { Sound } from "../audio/audio";
-
-/** Sound cues are the audio module's sound vocabulary. */
-export type SoundCue = Sound;
-
-export interface SensoryCues {
-  /** Sounds to start together, in order. */
-  readonly sounds: readonly SoundCue[];
-  /** One vibration pattern (ms on, off, on, …) for the whole Placement, or null. */
-  readonly vibration: readonly number[] | null;
-}
 
 /** Combo level 1's chime: C5. */
 const CHIME_BASE_HZ = 523.25;
@@ -51,27 +38,36 @@ function clearVibration(lines: number): readonly number[] {
   return pattern;
 }
 
-export function sensoryCues(events: readonly GameEvent[]): SensoryCues {
-  const sounds: SoundCue[] = [];
-  let vibration: readonly number[] | null = null;
-  for (const event of events) {
-    switch (event.type) {
-      case "piecePlaced":
-        sounds.push({ kind: "thunk" });
-        vibration = PLACEMENT_VIBRATION;
-        break;
-      case "linesCleared":
-        sounds.push({ kind: "clear", lines: event.lines });
-        vibration = clearVibration(event.lines);
-        break;
-      case "comboIncreased":
-        sounds.push({ kind: "chime", level: event.level, frequency: chimeFrequency(event.level) });
-        break;
-      case "boardClear":
-        sounds.push({ kind: "boardClear" });
-        vibration = BOARD_CLEAR_VIBRATION;
-        break;
-    }
+/** The sounds one core event plays, in order. */
+export function soundsFor(event: GameEvent): Sound[] {
+  switch (event.type) {
+    case "piecePlaced":
+      return [{ kind: "thunk" }];
+    case "linesCleared":
+      return [{ kind: "clear", lines: event.lines }];
+    case "comboIncreased":
+      return [{ kind: "chime", level: event.level, frequency: chimeFrequency(event.level) }];
+    case "boardClear":
+      return [{ kind: "boardClear" }];
+    default:
+      return [];
   }
-  return { sounds, vibration };
+}
+
+/**
+ * The vibration a core event calls for, or null. A Placement fires one pattern
+ * (a new `navigator.vibrate` cancels the last), so the director keeps the last
+ * non-null one: Board Clear beats Clear beats the landing tap.
+ */
+export function vibrationFor(event: GameEvent): readonly number[] | null {
+  switch (event.type) {
+    case "piecePlaced":
+      return PLACEMENT_VIBRATION;
+    case "linesCleared":
+      return clearVibration(event.lines);
+    case "boardClear":
+      return BOARD_CLEAR_VIBRATION;
+    default:
+      return null;
+  }
 }
