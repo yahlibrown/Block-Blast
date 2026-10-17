@@ -1,8 +1,9 @@
 // Shell: wires the core to the Canvas. Owns the DOM and the frame loop.
 import { attemptPlacement, create, type GameState } from "../core";
 import { attachDrag } from "../input/drag";
-import { createHud } from "./hud";
+import { createHud, createScoreStats } from "./hud";
 import { render, type DragView } from "../renderer/renderer";
+import { createGameOverScreen } from "./gameOver";
 import "./style.css";
 
 const canvas = document.querySelector<HTMLCanvasElement>("#game");
@@ -13,6 +14,17 @@ if (!ctx) throw new Error("Canvas 2D not supported");
 let state: GameState = create({ seed: Date.now() });
 let drag: DragView | null = null;
 const hud = createHud(document.body, canvas);
+
+const gameOver = createGameOverScreen(document.body, playAgain);
+const gameOverStats = createScoreStats(gameOver.stats);
+
+/** Start a fresh Run: empty Board, new Tray, Best Score carried over. */
+function playAgain(): void {
+  state = create({ seed: Date.now(), best: state.best });
+  drag = null;
+  gameOver.hide();
+  draw();
+}
 
 let cssWidth = 0;
 let cssHeight = 0;
@@ -45,6 +57,10 @@ attachDrag(canvas, {
     if (!result.ok) return false; // snaps back: the Piece stays in its Tray slot
     state = result.state;
     draw();
+    if (result.events.some((e) => e.type === "gameOver")) {
+      gameOverStats.update(state);
+      gameOver.show();
+    }
     return true;
   },
   changed(next) {

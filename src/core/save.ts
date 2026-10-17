@@ -40,6 +40,8 @@ export interface SaveData {
   readonly combo?: number;
   /** Placements in a row without a Clear. Defaults to 0. */
   readonly dry?: number;
+  /** Game Over reached. Defaults to false. */
+  readonly over?: boolean;
 }
 
 export class InvalidSaveError extends Error {
@@ -59,6 +61,7 @@ export function serialize(state: GameState): Required<SaveData> {
     best: state.best,
     combo: state.combo,
     dry: state.dry,
+    over: state.over,
   };
 }
 
@@ -101,7 +104,10 @@ export function restore(data: SaveData): GameState {
   const combo = count(d.combo, "combo");
   const dry = count(d.dry, "dry");
 
-  return { board: cells, tray: slots, rng: rng >>> 0, score, best, combo, dry };
+  const over = d.over ?? false;
+  if (typeof over !== "boolean") fail("bad over");
+
+  return { board: cells, tray: slots, rng: rng >>> 0, score, best, combo, dry, over };
 }
 
 /** An optional non-negative integer field; missing means 0. */

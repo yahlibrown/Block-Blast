@@ -4,8 +4,8 @@ import type { Piece, PieceId, Position } from "./pieces";
 import { BOARD_CLEAR_BONUS, blockPoints, clearPoints, stepCombo } from "./scoring";
 import { BOARD_SIZE, type Board, type GameState, type Tray } from "./state";
 
-/** Why a Placement was refused. Later tickets add reasons (e.g. "game-over"). */
-export type RejectReason = "empty-slot" | "out-of-bounds" | "overlap";
+/** Why a Placement was refused. "game-over": the Run has ended. */
+export type RejectReason = "empty-slot" | "out-of-bounds" | "overlap" | "game-over";
 
 /** A Cell that held a block, with that block's color. */
 export interface ColoredPosition extends Position {
@@ -63,6 +63,10 @@ export type GameEvent =
   | {
       readonly type: "trayDealt";
       readonly tray: Tray;
+    }
+  | {
+      /** No remaining Tray Piece fits (checked after the Placement and any deal). Always last. */
+      readonly type: "gameOver";
     };
 
 export type PlacementResult =
@@ -101,6 +105,7 @@ export function attemptPlacement(
   slot: number,
   origin: Position,
 ): PlacementResult {
+  if (state.over) return { ok: false, reason: "game-over" };
   const fit = queryFit(state, slot, origin);
   if (!fit.fits) return { ok: false, reason: fit.reason };
   const entry = state.tray[slot]!;
@@ -159,16 +164,20 @@ export function attemptPlacement(
     events.push({ type: "trayDealt", tray });
   }
 
-  return { ok: true, state: {
-      ...state,
-      board,
-      tray,
-      rng,
-      score,
-      best: Math.max(state.best, score),
-      combo: combo.combo,
-      dry: combo.dry,
-    }, events };
+  const next: GameState = {
+    ...state,
+    board,
+    tray,
+    rng,
+    score,
+    best: Math.max(state.best, score),
+    combo: combo.combo,
+    dry: combo.dry,
+  };
+  const over = !trayFits(next).some(Boolean);
+  if (over) events.push({ type: "gameOver" });
+
+  return { ok: true, state: { ...next, over }, events };
 }
 
 function fitPiece(board: Board, piece: Piece, origin: Position): FitResult {

@@ -38,6 +38,8 @@ export interface GameState {
   readonly combo: number;
   /** Placements in a row without a Clear (reset by a Clear). */
   readonly dry: number;
+  /** Game Over: no remaining Tray Piece fits. Final; Placements are then rejected. */
+  readonly over: boolean;
 }
 
 export function emptyBoard(): Cell[][] {

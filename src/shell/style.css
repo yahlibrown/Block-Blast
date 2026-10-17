@@ -75,10 +75,110 @@ body {
   font-weight: 700;
 }
 
-#hud .hud-label {
+.hud-label {
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   opacity: 0.7;
+}
+
+/* Game Over overlay: sits over the Board and blocks drags while shown. */
+.game-over {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(10, 14, 30, 0.72);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  color: #fff;
+  animation: game-over-in 250ms ease-out;
+}
+
+.game-over[hidden] {
+  display: none;
+}
+
+.game-over__panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  width: min(100%, 360px);
+  padding: 32px 24px;
+  border-radius: 20px;
+  background: #26315a;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+  text-align: center;
+}
+
+.game-over__title {
+  margin: 0;
+  font-size: 2.25rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+/* Filled by later tickets (score, Best Score, Skin progress). */
+.game-over__stats {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+
+.game-over__stats:empty {
+  display: none;
+}
+
+.game-over__play {
+  width: 100%;
+  min-height: 64px;
+  border: 0;
+  border-radius: 16px;
+  background: #ffb020;
+  color: #1b2440;
+  font: inherit;
+  font-size: 1.5rem;
+  font-weight: 800;
+  cursor: pointer;
+  touch-action: manipulation;
+  box-shadow: 0 4px 0 #c27c00;
+}
+
+.game-over__play:active {
+  transform: translateY(2px);
+  box-shadow: 0 2px 0 #c27c00;
+}
+
+@keyframes game-over-in {
+  from {
+    opacity: 0;
+  }
+}
+
+/* Score and Best Score on the Game Over screen (ticket 05). */
+.score-stats {
+  display: flex;
+  justify-content: space-around;
+  gap: 16px;
+  font-variant-numeric: tabular-nums;
+}
+
+.score-stats__row {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.score-stats__value {
+  font-size: 2rem;
+  font-weight: 800;
+}
+
+.score-stats__row--best {
+  color: #ffd166;
 }

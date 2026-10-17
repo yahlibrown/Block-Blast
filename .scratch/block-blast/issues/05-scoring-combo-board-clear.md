@@ -15,13 +15,12 @@ All numbers live in a single tuning table. The Best Score is kept in memory for 
 
 **Status:** ready-for-agent
 
-- [ ] The current score and Best Score are visible during play and on the Game Over screen
+- [x] The current score and Best Score are visible during play and on the Game Over screen
 - [x] The core emits events for: points from a Placement, a Clear (Lines, Multi-Clear size, points), Combo increased (level), Combo broken, and Board Clear (bonus)
 - [x] All balance numbers come from one tuning table
 - [x] Core tests cover: block points; points for 1, 2, 3 and 4 Lines; the Combo multiplier on the first and later Clears; the Combo surviving two dry Placements and breaking on the third; the dry count resetting on a Clear; the Board Clear bonus; the Best Score updating when beaten
 
 ## Comments
 
-- Implemented on branch `ticket-05-scoring-combo-board-clear`. Score and Best Score show in a DOM HUD band above the canvas during play (`src/shell/hud.ts`).
-- **Game Over screen half of the first checkbox is open**: ticket 04 builds that overlay in parallel. It should read `state.score` and `state.best` (and `formatScore` from `src/shell/hud.ts`) when it renders, and "Play again" should call `create({ seed, best: state.best })` so the Best Score carries over in memory.
-- Human to verify on the phone: the HUD band sits clear of the notch/status bar and the Board still fits below it.
+- Implemented on branch `ticket-05-scoring-combo-board-clear`. Score and Best Score show in a DOM HUD band above the canvas during play (`src/shell/hud.ts`), and as rows in ticket 04's Game Over `stats` container (`createScoreStats`). "Play again" carries the Best Score into the next Run (`create({ seed, best })`); it is in memory only until ticket 08.
+- Human to verify on the phone: the HUD band sits clear of the notch/status bar, the Board still fits below it, and the Game Over screen shows the right score and Best Score.
