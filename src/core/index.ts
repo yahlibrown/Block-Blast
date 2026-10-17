@@ -48,8 +48,6 @@ export interface ProfileInput {
 export interface CreateOptions {
   /** Seed for the core's random source (drives dealing). */
   readonly seed: number;
-  /** Best Score carried in from earlier Runs (`profile.best` wins). Defaults to 0. */
-  readonly best?: number;
   /** Best Score, Lifetime Points and unlocked Skins from earlier Runs. Defaults to a new player. */
   readonly profile?: ProfileInput;
 }
@@ -58,7 +56,7 @@ export interface CreateOptions {
 export function create(options: CreateOptions): GameState {
   const board = emptyBoard();
   const [tray, rng] = dealTray(board, seedRng(options.seed));
-  const best = options.profile?.best ?? options.best ?? 0;
+  const best = options.profile?.best ?? 0;
   const lifetime = options.profile?.lifetime ?? 0;
   return {
     board,

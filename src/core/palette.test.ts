@@ -1,25 +1,7 @@
-import { describe, expect, it, vi } from "vitest";
-import { attemptPlacement, create, restore, serialize, type GameState, type SaveData } from "./index";
+import { describe, expect, it } from "vitest";
+import { create, restore, serialize } from "./index";
 import * as core from "./index";
-
-type Cell = number | null;
-const EMPTY: Cell[][] = Array.from({ length: 8 }, () => Array.from({ length: 8 }, (): Cell => null));
-
-const DOTS: SaveData["tray"] = [
-  { piece: "dot", color: 0 },
-  { piece: "dot", color: 0 },
-  { piece: "dot", color: 0 },
-];
-
-function run(data: Partial<SaveData>): GameState {
-  return restore({ version: 1, board: EMPTY, tray: DOTS, ...data });
-}
-
-function place(state: GameState, slot: number, row: number, col: number) {
-  const result = attemptPlacement(state, slot, { row, col });
-  if (!result.ok) throw new Error(`expected Placement to succeed, got ${result.reason}`);
-  return result;
-}
+import { EMPTY, run, DOTS, place, coreWithTuning } from "../testing/core";
 
 const shifts = (events: readonly core.GameEvent[]) => events.filter((e) => e.type === "paletteShift");
 
@@ -81,7 +63,7 @@ describe("Palette Shifts", () => {
     const highLevel = place(run({ score: 4999, best: 4999, paletteLevel: 4 }), 0, 0, 0).state;
     expect(serialize(highLevel).paletteLevel).toBe(5);
 
-    const next = create({ seed: 1, best: highLevel.best });
+    const next = create({ seed: 1, profile: { best: highLevel.best } });
 
     expect(serialize(next).paletteLevel).toBe(0);
     expect(shifts(place(restore({ ...serialize(next), tray: DOTS }), 0, 0, 0).events)).toEqual([]);
@@ -111,13 +93,5 @@ describe("Palette Shifts", () => {
   });
 });
 
-async function coreWithShiftEvery(shiftEvery: number): Promise<typeof core> {
-  vi.resetModules();
-  vi.doMock("../tuning/tuning", async (importOriginal) => {
-    const actual = await importOriginal<typeof import("../tuning/tuning")>();
-    return { ...actual, TUNING: { ...actual.TUNING, palette: { ...actual.TUNING.palette, shiftEvery } } };
-  });
-  const api = await import("./index");
-  vi.doUnmock("../tuning/tuning");
-  return api;
-}
+const coreWithShiftEvery = (shiftEvery: number) =>
+  coreWithTuning((t) => ({ ...t, palette: { ...t.palette, shiftEvery } }));

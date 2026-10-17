@@ -1,16 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { attemptPlacement, queryFit, restore, serialize, trayFits, type SaveData } from "./index";
-
-/** Board from art: `.` empty, a digit = filled with that color. 8 rows of 8. */
-function board(...rows: string[]): (number | null)[][] {
-  return rows.map((row) => [...row].map((ch) => (ch === "." ? null : Number(ch))));
-}
-
-const EMPTY = board(...Array.from({ length: 8 }, () => "........"));
-
-function run(data: Partial<SaveData>): ReturnType<typeof restore> {
-  return restore({ version: 1, board: EMPTY, tray: [null, null, null], ...data });
-}
+import { attemptPlacement, queryFit, serialize, trayFits } from "./index";
+import { board, EMPTY, run } from "../testing/core";
 
 describe("a valid Placement", () => {
   it("fills the Piece's Cells with its color and empties its Tray slot", () => {

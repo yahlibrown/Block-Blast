@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import * as core from "./index";
 import {
   attemptPlacement,
@@ -12,6 +12,7 @@ import {
   type GameState,
   type PieceId,
 } from "./index";
+import { coreWithTuning } from "../testing/core";
 
 /** Small seeded generator for building test Boards (independent of the core's RNG). */
 function testRandom(seed: number): () => number {
@@ -189,16 +190,8 @@ function lineCompletingShare(api: typeof core): number {
 }
 
 /** A fresh copy of the core whose tuning table has `lineBias` swapped in. */
-async function coreWithLineBias(lineBias: number): Promise<typeof core> {
-  vi.resetModules();
-  vi.doMock("../tuning/tuning", async (importOriginal) => {
-    const actual = await importOriginal<typeof import("../tuning/tuning")>();
-    return { ...actual, TUNING: { ...actual.TUNING, dealer: { ...actual.TUNING.dealer, lineBias } } };
-  });
-  const api = await import("./index");
-  vi.doUnmock("../tuning/tuning");
-  return api;
-}
+const coreWithLineBias = (lineBias: number) =>
+  coreWithTuning((t) => ({ ...t, dealer: { ...t.dealer, lineBias } }));
 
 describe("the Dealer's Line bias", () => {
   it("deals Line-completing Pieces more often with the tuned bias on than with it off", async () => {
