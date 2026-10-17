@@ -5,6 +5,7 @@ import { createHud, createScoreStats } from "./hud";
 import { render, type DragView } from "../renderer/renderer";
 import { createGameOverScreen } from "./gameOver";
 import { createFrameLoop } from "./loop";
+import { createPersistence } from "../persistence/persistence";
 import "./style.css";
 
 const canvas = document.querySelector<HTMLCanvasElement>("#game");
@@ -12,7 +13,8 @@ if (!canvas) throw new Error("Missing #game canvas");
 const ctx = canvas.getContext("2d");
 if (!ctx) throw new Error("Canvas 2D not supported");
 
-let state: GameState = create({ seed: Date.now() });
+const persistence = createPersistence(localStorageOrNull());
+let state: GameState = persistence.loadRun({ seed: Date.now() }); // resumes the saved Run
 let fits = trayFits(state); // recomputed after every Placement
 let drag: DragView | null = null;
 const hud = createHud(document.body, canvas);
@@ -53,13 +55,28 @@ function setState(next: GameState): void {
   state = next;
   fits = trayFits(state);
   hud.update(state);
+  persistence.saveRun(state); // after every Placement (incl. Game Over) and Play again
   loop.invalidate();
+}
+
+/** `localStorage`, or `null` where touching it throws (e.g. storage blocked). */
+function localStorageOrNull(): Storage | null {
+  try {
+    return window.localStorage;
+  } catch {
+    return null;
+  }
 }
 
 new ResizeObserver(resize).observe(canvas);
 window.addEventListener("resize", resize);
 resize();
 hud.update(state);
+if (state.over) {
+  // The restored Run had already ended: show its Game Over screen.
+  gameOverStats.update(state);
+  gameOver.show();
+}
 
 attachDrag(canvas, {
   getState: () => state,
