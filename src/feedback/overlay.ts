@@ -4,7 +4,7 @@
 // It's drawn on the canvas and owns no input, so it never blocks a drag.
 import type { FeedbackCue } from "./director";
 
-export type PopRole = "praise" | "combo" | "newBest";
+export type PopRole = "praise" | "combo" | "newBest" | "skinUnlocked";
 
 /** One text to draw this frame. The renderer decides where each role sits and its look. */
 export interface PopFrame {
@@ -38,6 +38,8 @@ const COMBO_POP_MS = 260;
 const COMBO_FADE_MS = 600;
 const NEW_BEST_MS = 1600;
 const NEW_BEST_POP_MS = 280;
+const SKIN_BANNER_MS = 2400;
+const SKIN_BANNER_POP_MS = 320;
 
 interface Timed {
   readonly text: string;
@@ -49,6 +51,7 @@ interface Timed {
 export function createTextOverlay(): TextOverlay {
   let praise: Timed | null = null;
   let newBest: Timed | null = null;
+  let skin: Timed | null = null;
   let combo: { level: number; start: number; end: number | null } | null = null;
 
   return {
@@ -67,11 +70,14 @@ export function createTextOverlay(): TextOverlay {
           case "newBest":
             newBest = { text: "NEW BEST!", tier: 0, start: now, life: NEW_BEST_MS };
             break;
+          case "skinUnlocked":
+            skin = { text: cue.text, tier: 0, start: now, life: SKIN_BANNER_MS };
+            break;
         }
       }
     },
     reset() {
-      praise = newBest = combo = null;
+      praise = newBest = skin = combo = null;
     },
     frame(now) {
       const frames: PopFrame[] = [];
@@ -97,6 +103,10 @@ export function createTextOverlay(): TextOverlay {
         const f = popFrame("newBest", newBest, now, NEW_BEST_POP_MS, 0.3);
         if (f) frames.push(f);
       }
+      if (skin) {
+        const f = popFrame("skinUnlocked", skin, now, SKIN_BANNER_POP_MS, 0.2);
+        if (f) frames.push(f);
+      }
       return frames;
     },
     busy(now) {
@@ -104,7 +114,7 @@ export function createTextOverlay(): TextOverlay {
       const comboMoving =
         combo !== null &&
         (now - combo.start < COMBO_POP_MS || (combo.end !== null && now - combo.end < COMBO_FADE_MS));
-      return live(praise) || live(newBest) || comboMoving;
+      return live(praise) || live(newBest) || live(skin) || comboMoving;
     },
   };
 }

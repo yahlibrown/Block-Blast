@@ -3,6 +3,7 @@ import { dealTray } from "./dealer";
 import type { Piece, PieceId, Position } from "./pieces";
 import { BOARD_CLEAR_BONUS, blockPoints, clearPoints, stepCombo } from "./scoring";
 import { paletteLevelFor } from "./palette";
+import { newUnlocks, unlockedSkins, type SkinId } from "./skins";
 import { BOARD_SIZE, type Board, type GameState, type Tray } from "./state";
 
 /** Why a Placement was refused. "game-over": the Run has ended. */
@@ -76,12 +77,23 @@ export type GameEvent =
       readonly previous: number;
     }
   | {
+      /** Lifetime Points plus the score reached this Skin's threshold. Once per Skin, ever. */
+      readonly type: "skinUnlocked";
+      readonly skin: SkinId;
+    }
+  | {
       readonly type: "trayDealt";
       readonly tray: Tray;
     }
   | {
       /** No remaining Tray Piece fits (checked after the Placement and any deal). Always last. */
       readonly type: "gameOver";
+      /** The Run's final score. */
+      readonly score: number;
+      /** Lifetime Points, with the final score now added. */
+      readonly lifetime: number;
+      /** Skins unlocked during this Run, in unlock order (for the reveal). */
+      readonly skinsUnlocked: readonly SkinId[];
     };
 
 export type PlacementResult =
@@ -177,7 +189,11 @@ export function attemptPlacement(
   if (previous > 0 && state.score <= previous && score > previous) {
     events.push({ type: "newBest", score, previous });
   }
-  // (Ticket 13) skinUnlocked slots in here, after newBest and before trayDealt.
+  // Skin unlocks: checked against Lifetime Points plus this Run's score, so they can come mid-Run.
+  const fresh = newUnlocks(state.unlocked, state.lifetime + score);
+  for (const skin of fresh) events.push({ type: "skinUnlocked", skin });
+  const unlocked = fresh.length > 0 ? unlockedSkins([...state.unlocked, ...fresh], 0) : state.unlocked;
+  const runUnlocked = fresh.length > 0 ? [...state.runUnlocked, ...fresh] : state.runUnlocked;
 
   let tray: Tray = state.tray.map((t, i) => (i === slot ? null : t));
   let rng = state.rng;
@@ -196,11 +212,15 @@ export function attemptPlacement(
     combo: combo.combo,
     dry: combo.dry,
     paletteLevel,
+    unlocked,
+    runUnlocked,
   };
   const over = !trayFits(next).some(Boolean);
-  if (over) events.push({ type: "gameOver" });
+  // Game Over banks the final score into Lifetime Points.
+  const lifetime = over ? state.lifetime + score : state.lifetime;
+  if (over) events.push({ type: "gameOver", score, lifetime, skinsUnlocked: runUnlocked });
 
-  return { ok: true, state: { ...next, over }, events };
+  return { ok: true, state: { ...next, over, lifetime }, events };
 }
 
 function fitPiece(board: Board, piece: Piece, origin: Position): FitResult {

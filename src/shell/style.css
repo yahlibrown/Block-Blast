@@ -315,3 +315,198 @@ body {
     transform: translateY(100%);
   }
 }
+
+/* Skins (ticket 13). Panels may outgrow short screens: let them scroll vertically. */
+.settings__panel,
+.game-over__panel {
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+  touch-action: pan-y;
+}
+
+/* A 2×2 preview of a Skin's Board and blocks; the corner radius hints at the block style. */
+.skin-swatch {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3px;
+  width: 40px;
+  height: 40px;
+  padding: 4px;
+  box-sizing: border-box;
+  border-radius: 8px;
+}
+
+.skin-swatch > span {
+  background: var(--block);
+  border-radius: 3px;
+}
+
+.skin-swatch--big {
+  width: 96px;
+  height: 96px;
+  gap: 6px;
+  padding: 8px;
+  border-radius: 14px;
+}
+
+.skin-swatch--big > span {
+  border-radius: 6px;
+}
+
+.skin-swatch--neon > span {
+  background: transparent;
+  border: 2px solid var(--block);
+}
+
+.skin-swatch--glossy > span {
+  border-radius: 40%;
+  background: radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.6) 0 18%, transparent 20%), var(--block);
+}
+
+.skin-swatch--carved > span {
+  border-radius: 1px;
+  box-shadow: inset 0 -4px 0 rgba(0, 0, 0, 0.3);
+}
+
+.skin-swatch--bevel > span {
+  border-radius: 0;
+  box-shadow: inset 3px 3px 0 rgba(255, 255, 255, 0.4), inset -3px -3px 0 rgba(0, 0, 0, 0.4);
+}
+
+.skin-picker__heading {
+  margin: 8px 0 4px;
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+.skin-picker__list {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+}
+
+.skin-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-height: 84px;
+  padding: 8px 2px;
+  border: 2px solid transparent;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.skin-option[aria-checked="true"] {
+  border-color: #ffb020;
+  background: rgba(255, 176, 32, 0.15);
+}
+
+.skin-option__lock {
+  display: none;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.skin-option--locked {
+  cursor: default;
+}
+
+.skin-option--locked .skin-swatch {
+  filter: grayscale(1) brightness(0.6);
+}
+
+.skin-option--locked .skin-option__name {
+  opacity: 0.6;
+}
+
+.skin-option--locked .skin-option__lock {
+  display: block;
+}
+
+/* Game Over: Skin reveal and progress bar. */
+.skin-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+
+.skin-reveal {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 16px;
+  border-radius: 16px;
+  background: rgba(141, 255, 180, 0.1);
+  animation: skin-reveal-in 600ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.skin-reveal__label {
+  color: #8dffb4;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 0.85rem;
+}
+
+.skin-reveal__name {
+  font-size: 1.4rem;
+  font-weight: 800;
+}
+
+.skin-reveal__equip {
+  min-height: 44px;
+  padding: 0 20px;
+  border: 0;
+  border-radius: 12px;
+  background: #3ecf6e;
+  color: #10301c;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.skin-reveal__equip:disabled {
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  cursor: default;
+}
+
+@keyframes skin-reveal-in {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+}
+
+.skin-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.9rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.skin-progress__bar {
+  height: 12px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.12);
+  overflow: hidden;
+}
+
+.skin-progress__fill {
+  height: 100%;
+  border-radius: 6px;
+  background: linear-gradient(90deg, #3ecf6e, #8dffb4);
+  transition: width 600ms ease-out;
+}

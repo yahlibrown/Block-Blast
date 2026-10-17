@@ -1,5 +1,16 @@
 // Shell: wires the core to the Canvas. Owns the DOM and the frame loop.
-import { attemptPlacement, create, queryFit, trayFits, type GameState } from "../core";
+import {
+  attemptPlacement,
+  create,
+  profileOf,
+  queryFit,
+  SKINS,
+  trayFits,
+  type GameState,
+  type SkinId,
+} from "../core";
+import { skinLook } from "../renderer/skins";
+import { createSkinPicker, createSkinStats } from "./skins";
 import { directFeedback, type FeedbackCue } from "../feedback/director";
 import { createTextOverlay } from "../feedback/overlay";
 import { attachDrag } from "../input/drag";
@@ -32,6 +43,13 @@ const overlay = createTextOverlay();
 
 const gameOver = createGameOverScreen(document.body, playAgain);
 const gameOverStats = createScoreStats(gameOver.stats);
+const skinStats = createSkinStats(gameOver.stats, (skin) => chooseSkin(skin));
+
+function showGameOver(): void {
+  gameOverStats.update(state);
+  skinStats.update(state, activeSkin());
+  gameOver.show();
+}
 
 // Sound, haptics and their settings (ticket 11).
 const audio = createAudio();
@@ -53,6 +71,20 @@ settingsSheet.addToggle("Sound", settings.sound, (sound) => {
   if (sound) audio.unlock(); // the toggle tap is a user gesture
 });
 settingsSheet.addToggle("Vibration", settings.haptics, (haptics) => changeSettings({ haptics }));
+
+// Skins (ticket 13): the chosen Skin is a setting; only unlocked Skins can be shown.
+/** The Skin to draw: the chosen one if unlocked, else the first. */
+function activeSkin(): SkinId {
+  return state.unlocked.includes(settings.skin) ? settings.skin : SKINS[0]!.id;
+}
+const skinPicker = createSkinPicker(settingsSheet.content, (skin) => chooseSkin(skin));
+function chooseSkin(skin: SkinId): void {
+  changeSettings({ skin });
+  skinPicker.update(state.unlocked, activeSkin());
+  backdrop.setBase(skinLook(activeSkin()).backdrop);
+  loop.invalidate();
+}
+skinPicker.update(state.unlocked, activeSkin());
 // Browsers only start audio from a user gesture: (re)unlock on every touch.
 document.addEventListener("pointerdown", () => audio.unlock(), { capture: true });
 
@@ -66,12 +98,12 @@ function playSensoryCues(cues: readonly FeedbackCue[]): void {
   audio.play(sounds);
 }
 
-/** Start a fresh Run: empty Board, new Tray, Best Score carried over. */
+/** Start a fresh Run: empty Board, new Tray; Best Score, Lifetime Points and Skins carried over. */
 function playAgain(): void {
   drag = null;
   gameOver.hide();
   overlay.reset();
-  setState(create({ seed: Date.now(), best: state.best }));
+  setState(create({ seed: Date.now(), profile: profileOf(state) }));
   hud.reset(state);
 }
 
@@ -96,8 +128,10 @@ let lastNow = 0;
 function draw(now: number = lastNow): void {
   lastNow = now;
   const preview = drag ? queryFit(state, drag.slot, drag.origin) : null;
-  const boardOverlay = effectsOverlay(effects.frame(now), state.board);
+  const skin = skinLook(activeSkin());
+  const boardOverlay = effectsOverlay(effects.frame(now), state.board, skin);
   render(ctx!, cssWidth, cssHeight, {
+    skin,
     state,
     drag,
     preview,
@@ -112,9 +146,13 @@ function draw(now: number = lastNow): void {
 const loop = createFrameLoop(draw, (cb) => requestAnimationFrame(cb));
 
 /** Palette Shift colors: blends to the Run's level; the page behind the HUD follows the canvas. */
-const backdrop = createBackdropTransition(loop, (b) => {
-  document.body.style.background = b.background;
-});
+const backdrop = createBackdropTransition(
+  loop,
+  (b) => {
+    document.body.style.background = b.background;
+  },
+  skinLook(activeSkin()).backdrop, // Palette Shifts tint the chosen Skin's base colors
+);
 backdrop.setLevel(state.paletteLevel, true); // a resumed Run opens at its colors, no blend
 
 function setState(next: GameState): void {
@@ -140,8 +178,7 @@ resize();
 hud.reset(state);
 if (state.over) {
   // The restored Run had already ended: show its Game Over screen.
-  gameOverStats.update(state);
-  gameOver.show();
+  showGameOver();
 }
 
 attachDrag(canvas, {
@@ -162,10 +199,10 @@ attachDrag(canvas, {
     loop.animate((t) => hud.tick(t));
     overlay.play(cues, now);
     if (overlay.busy(now)) loop.animate((t) => overlay.busy(t));
-    if (result.events.some((e) => e.type === "gameOver")) {
-      gameOverStats.update(state);
-      gameOver.show();
+    if (result.events.some((e) => e.type === "skinUnlocked")) {
+      skinPicker.update(state.unlocked, activeSkin()); // the "New Skin unlocked!" banner is in `cues`
     }
+    if (result.events.some((e) => e.type === "gameOver")) showGameOver();
     return true;
   },
   changed(next) {

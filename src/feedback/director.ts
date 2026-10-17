@@ -6,7 +6,7 @@
 // the matching event's case below. Cues come out in event order, and players
 // switch on `kind` and ignore kinds they don't handle, so a new kind never
 // breaks an existing player.
-import type { GameEvent } from "../core";
+import type { GameEvent, SkinId } from "../core";
 import type { Sound } from "../audio/audio";
 import { COMBO_DISPLAY_FROM, PRAISE, praiseTier } from "./praise";
 import { soundsFor, vibrationFor } from "./sensory";
@@ -20,12 +20,17 @@ export type FeedbackCue =
   | { readonly kind: "comboEnd"; readonly level: number }
   /** The first time this Run the score passed the Best Score. */
   | { readonly kind: "newBest"; readonly score: number }
+  /** A Skin unlocked mid-Run: a Praise-style "New Skin unlocked!" banner (one per Skin). */
+  | { readonly kind: "skinUnlocked"; readonly skin: SkinId; readonly text: string }
   /** Play a generated sound (see `audio`). */
   | { readonly kind: "sound"; readonly sound: Sound }
   /** Vibrate with this pattern (ms on, off, on, ...). At most one per Placement, last. */
   | { readonly kind: "haptic"; readonly pattern: readonly number[] };
 
 export type FeedbackCueKind = FeedbackCue["kind"];
+
+/** The mid-Run banner when a Skin unlocks. */
+export const SKIN_UNLOCKED_TEXT = "New Skin unlocked!";
 
 export function directFeedback(events: readonly GameEvent[]): FeedbackCue[] {
   const cues: FeedbackCue[] = [];
@@ -48,6 +53,9 @@ export function directFeedback(events: readonly GameEvent[]): FeedbackCue[] {
         break;
       case "newBest":
         cues.push({ kind: "newBest", score: event.score });
+        break;
+      case "skinUnlocked":
+        cues.push({ kind: "skinUnlocked", skin: event.skin, text: SKIN_UNLOCKED_TEXT });
         break;
     }
   }

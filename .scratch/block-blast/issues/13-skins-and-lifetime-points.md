@@ -12,11 +12,17 @@
 
 **Status:** ready-for-agent
 
-- [ ] At Game Over, the core adds the Run's final score to Lifetime Points
-- [ ] The core emits a Skin unlocked event once per Skin, at the Placement where Lifetime Points plus the current score reach its threshold
-- [ ] Five Skins exist, each with a distinct Board and block style; the first is unlocked from the start
-- [ ] A "New Skin unlocked!" banner appears mid-Run without blocking play
-- [ ] The Game Over screen shows a progress bar toward the next Skin and reveals any Skin unlocked in that Run
-- [ ] The settings sheet has a Skin picker: unlocked Skins are selectable, locked ones show their threshold
-- [ ] Lifetime Points, unlocked Skins and the chosen Skin survive reloads
-- [ ] Core tests cover: Lifetime Points accumulating across Runs, a mid-Run unlock, an unlock firing only once, a Run crossing two thresholds at once, and save/restore of the profile
+- [x] At Game Over, the core adds the Run's final score to Lifetime Points
+- [x] The core emits a Skin unlocked event once per Skin, at the Placement where Lifetime Points plus the current score reach its threshold
+- [x] Five Skins exist, each with a distinct Board and block style; the first is unlocked from the start
+- [x] A "New Skin unlocked!" banner appears mid-Run without blocking play
+- [x] The Game Over screen shows a progress bar toward the next Skin and reveals any Skin unlocked in that Run
+- [x] The settings sheet has a Skin picker: unlocked Skins are selectable, locked ones show their threshold
+- [x] Lifetime Points, unlocked Skins and the chosen Skin survive reloads
+- [x] Core tests cover: Lifetime Points accumulating across Runs, a mid-Run unlock, an unlock firing only once, a Run crossing two thresholds at once, and save/restore of the profile
+
+## Comments
+
+- Implemented on branch `ticket-13-skins-and-lifetime-points`. Covered by tests: core (`src/core/skins.test.ts`), profile/settings persistence, director cue and overlay banner, and the Skin look catalogue.
+- Human to verify on a phone: the five Skins look distinct and good (picker in Settings; Classic, Neon, Candy, Forest, Royal Gold); the mid-Run "New Skin unlocked!" banner reads well under the Board and never blocks a drag; the Game Over progress bar and reveal card (with "Use this Skin") look right, and the panel scrolls on short screens; Palette Shifts still tint the chosen Skin. Tip: to reach a threshold quickly, edit `TUNING.skins.thresholds` locally.
+- Thresholds are first guesses (0 / 5,000 / 15,000 / 35,000 / 75,000) in `TUNING.skins.thresholds`; tune by playtest.

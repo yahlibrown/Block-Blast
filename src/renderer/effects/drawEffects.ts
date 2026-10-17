@@ -1,6 +1,7 @@
 // Draws one `EffectsFrame` over the Board (Canvas 2D). No simulation here: see clearEffects.ts.
 import type { Board } from "../../core";
-import { blockColor, drawCell, type BoardLayout, type BoardOverlay } from "../renderer";
+import { blockColor, drawBlock, drawCell, type BoardLayout, type BoardOverlay } from "../renderer";
+import { DEFAULT_SKIN_LOOK, type SkinLook } from "../skins";
 import type { EffectsFrame } from "./clearEffects";
 
 /** Peak opacity of the white wash on flashing Lines and of the Board Clear flash. */
@@ -8,8 +9,12 @@ const FLASH_WASH_ALPHA = 0.85;
 const BOARD_FLASH_ALPHA = 0.7;
 
 /** Wraps a frame as the renderer's Board overlay hook. */
-export function effectsOverlay(frame: EffectsFrame, board: Board): BoardOverlay {
-  return { shake: frame.shake, draw: (ctx, layout) => drawEffects(ctx, layout, frame, board) };
+export function effectsOverlay(
+  frame: EffectsFrame,
+  board: Board,
+  skin: SkinLook = DEFAULT_SKIN_LOOK,
+): BoardOverlay {
+  return { shake: frame.shake, draw: (ctx, layout) => drawEffects(ctx, layout, frame, board, skin) };
 }
 
 function drawEffects(
@@ -17,6 +22,7 @@ function drawEffects(
   layout: BoardLayout,
   frame: EffectsFrame,
   board: Board,
+  skin: SkinLook,
 ): void {
   const { x, y, cellSize } = layout;
 
@@ -26,8 +32,7 @@ function drawEffects(
     if (board[c.row]?.[c.col] !== null) continue;
     const cx = x + c.col * cellSize;
     const cy = y + c.row * cellSize;
-    ctx.fillStyle = blockColor(c.color);
-    drawCell(ctx, cx, cy, cellSize);
+    drawBlock(ctx, cx, cy, cellSize, c.color, skin);
     ctx.globalAlpha = FLASH_WASH_ALPHA * frame.flashStrength;
     ctx.fillStyle = "#ffffff";
     drawCell(ctx, cx, cy, cellSize);
@@ -38,7 +43,7 @@ function drawEffects(
   for (const p of frame.particles) {
     const size = p.size * cellSize;
     ctx.globalAlpha = p.alpha;
-    ctx.fillStyle = blockColor(p.color);
+    ctx.fillStyle = blockColor(p.color, skin);
     ctx.fillRect(x + p.x * cellSize - size / 2, y + p.y * cellSize - size / 2, size, size);
   }
   ctx.globalAlpha = 1;

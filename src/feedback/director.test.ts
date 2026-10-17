@@ -103,6 +103,22 @@ describe("NEW BEST", () => {
   });
 });
 
+describe("Skin unlocks", () => {
+  it("cue a New Skin unlocked! banner per Skin, after the Placement's other text", () => {
+    const events: GameEvent[] = [
+      ...clear(1, 1),
+      { type: "skinUnlocked", skin: "neon" },
+      { type: "skinUnlocked", skin: "candy" },
+    ];
+
+    expect(visualCues(events)).toEqual([
+      { kind: "praise", text: "Good!", tier: 0 },
+      { kind: "skinUnlocked", skin: "neon", text: "New Skin unlocked!" },
+      { kind: "skinUnlocked", skin: "candy", text: "New Skin unlocked!" },
+    ]);
+  });
+});
+
 it("gives cues in the order of the events behind them", () => {
   const cues = visualCues([...clear(2, 3), { type: "newBest", score: 50, previous: 40 }]);
 

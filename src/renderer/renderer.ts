@@ -1,6 +1,7 @@
 // Canvas 2D renderer. Draws game state; holds no game rules.
 import type { Board, Cell, FitResult, GameState, Piece, Position } from "../core";
-import { BASE_BACKDROP, withAlpha, type Backdrop } from "./palette";
+import { BASE_BACKDROP, mixColor, withAlpha, type Backdrop } from "./palette";
+import { DEFAULT_SKIN_LOOK, type SkinLook } from "./skins";
 
 export interface BoardLayout {
   /** Top-left of the Board, in CSS pixels. */
@@ -47,6 +48,8 @@ export interface View {
   readonly boardOverlay?: BoardOverlay;
   /** Feedback texts (Praise, COMBO ×N, NEW BEST!) to draw over everything this frame. */
   readonly texts?: readonly OverlayText[];
+  /** The chosen Skin: Board, Cell and block look. Defaults to the first Skin. */
+  readonly skin?: SkinLook;
 }
 
 export interface BoardOverlay {
@@ -57,7 +60,7 @@ export interface BoardOverlay {
 
 /** One feedback text pop, already animated (the feedback overlay computes these). */
 export interface OverlayText {
-  readonly role: "praise" | "combo" | "newBest";
+  readonly role: "praise" | "combo" | "newBest" | "skinUnlocked";
   readonly text: string;
   /** Praise strength 0..4. */
   readonly tier: number;
@@ -68,8 +71,6 @@ export interface OverlayText {
 }
 
 const COLORS = {
-  boardBackground: "#121a30",
-  emptyCell: "#232f52",
   /** Wash over the Lines that would Clear. */
   lineHighlight: "rgba(255, 255, 255, 0.25)",
 } as const;
@@ -81,16 +82,6 @@ const DIMMED_ALPHA = 0.3;
 const GLOW_ALPHA = 0.35;
 const GLOW_RIM_ALPHA = 0.8;
 
-/** Block color per core color index (a Skin will replace this in ticket 13). */
-const BLOCK_COLORS = [
-  "#ff5a5f",
-  "#ffb330",
-  "#ffe14d",
-  "#4cd964",
-  "#35c4f0",
-  "#5b7cff",
-  "#b45bff",
-] as const;
 
 /** Largest Piece is 5 Cells long; each Tray slot fits one at Tray scale. */
 const TRAY_SCALE = 0.55;
@@ -123,6 +114,7 @@ export function render(
   view: View,
 ): void {
   const backdrop = view.backdrop ?? BASE_BACKDROP;
+  const skin = view.skin ?? DEFAULT_SKIN_LOOK;
   ctx.fillStyle = backdrop.background;
   ctx.fillRect(0, 0, width, height);
 
@@ -149,9 +141,9 @@ export function render(
     const { cellSize } = layout.board;
     ctx.translate(overlay.shake.x * cellSize, overlay.shake.y * cellSize);
   }
-  drawGlow(ctx, layout.board, columns, backdrop.glow); // the halo shakes with the Board
+  drawGlow(ctx, layout.board, columns, backdrop.glow, skin.board); // the halo shakes with the Board
   const recolor = new Set(clearing.map((p) => p.row * columns + p.col));
-  drawBoard(ctx, layout.board, board, (r, c, cell) =>
+  drawBoard(ctx, layout.board, board, skin, (r, c, cell) =>
     cell !== null && dragged && recolor.has(r * columns + c) ? dragged.color : cell,
   );
 
@@ -159,8 +151,9 @@ export function render(
     const { x, y, cellSize } = layout.board;
     // Ghost: exactly the Cells the Piece would fill. Solid when it completes a Line.
     ctx.globalAlpha = clearing.length > 0 ? 1 : GHOST_ALPHA;
-    ctx.fillStyle = blockColor(dragged.color);
-    for (const p of preview.cells) drawCell(ctx, x + p.col * cellSize, y + p.row * cellSize, cellSize);
+    for (const p of preview.cells) {
+      drawBlock(ctx, x + p.col * cellSize, y + p.row * cellSize, cellSize, dragged.color, skin);
+    }
     ctx.globalAlpha = 1;
     ctx.fillStyle = COLORS.lineHighlight;
     for (const p of clearing) drawCell(ctx, x + p.col * cellSize, y + p.row * cellSize, cellSize);
@@ -172,19 +165,19 @@ export function render(
     if (!entry || view.drag?.slot === slot) return;
     const at = trayPieceOrigin(layout, slot, entry.piece);
     ctx.globalAlpha = view.trayFits[slot] === false ? DIMMED_ALPHA : 1;
-    drawPiece(ctx, entry.piece, entry.color, at.x, at.y, layout.trayCellSize);
+    drawPiece(ctx, entry.piece, entry.color, at.x, at.y, layout.trayCellSize, skin);
   });
   ctx.globalAlpha = 1;
 
   if (view.drag && dragged) {
-    drawPiece(ctx, dragged.piece, dragged.color, view.drag.x, view.drag.y, layout.board.cellSize);
+    drawPiece(ctx, dragged.piece, dragged.color, view.drag.x, view.drag.y, layout.board.cellSize, skin);
   }
 
   for (const text of view.texts ?? []) drawOverlayText(ctx, layout.board, columns, text);
 }
 
 /** Where each feedback text sits, as a fraction of the Board's height from its top. */
-const TEXT_ROW: Record<OverlayText["role"], number> = { newBest: 0.22, praise: 0.45, combo: 0.66 };
+const TEXT_ROW: Record<OverlayText["role"], number> = { newBest: 0.22, praise: 0.45, combo: 0.66, skinUnlocked: 0.86 };
 /** Praise colors by tier: white "Good!" up to violet "Unbelievable!". */
 const PRAISE_COLORS = ["#ffffff", "#ffe14d", "#ffb330", "#ff6fb5", "#c58bff"] as const;
 
@@ -202,13 +195,17 @@ function drawOverlayText(
       ? cellSize * (0.85 + 0.12 * pop.tier)
       : pop.role === "newBest"
         ? cellSize * 1.0
-        : cellSize * 0.7;
+        : pop.role === "skinUnlocked"
+          ? cellSize * 0.72
+          : cellSize * 0.7;
   const color =
     pop.role === "praise"
       ? PRAISE_COLORS[Math.min(pop.tier, PRAISE_COLORS.length - 1)]!
       : pop.role === "newBest"
         ? "#ffd166"
-        : "#7ef0ff";
+        : pop.role === "skinUnlocked"
+          ? "#8dffb4"
+          : "#7ef0ff";
   ctx.save();
   ctx.globalAlpha = Math.min(1, pop.alpha);
   ctx.translate(board.x + side / 2, board.y + side * TEXT_ROW[pop.role] - pop.rise * cellSize);
@@ -239,7 +236,13 @@ export function trayPieceOrigin(layout: GameLayout, slot: number, piece: Piece):
 }
 
 /** Soft halo of the glow color behind the Board (the Palette Shift's glow). */
-function drawGlow(ctx: CanvasRenderingContext2D, layout: BoardLayout, columns: number, glow: string): void {
+function drawGlow(
+  ctx: CanvasRenderingContext2D,
+  layout: BoardLayout,
+  columns: number,
+  glow: string,
+  boardColor: string,
+): void {
   const side = layout.cellSize * columns;
   const cx = layout.x + side / 2;
   const cy = layout.y + side / 2;
@@ -252,7 +255,7 @@ function drawGlow(ctx: CanvasRenderingContext2D, layout: BoardLayout, columns: n
   ctx.save();
   ctx.shadowColor = withAlpha(glow, GLOW_RIM_ALPHA);
   ctx.shadowBlur = layout.cellSize * 0.8;
-  ctx.fillStyle = COLORS.boardBackground;
+  ctx.fillStyle = boardColor;
   const pad = Math.max(1, layout.cellSize * 0.06);
   roundRect(ctx, layout.x - pad, layout.y - pad, side + pad * 2, side + pad * 2, layout.cellSize * 0.18);
   ctx.restore();
@@ -262,20 +265,27 @@ function drawBoard(
   ctx: CanvasRenderingContext2D,
   layout: BoardLayout,
   board: Board,
+  skin: SkinLook,
   colorAt: (row: number, col: number, cell: Cell) => Cell,
 ): void {
   const { x, y, cellSize } = layout;
   const side = cellSize * board.length;
   const pad = Math.max(1, cellSize * 0.06);
 
-  ctx.fillStyle = COLORS.boardBackground;
+  ctx.fillStyle = skin.board;
   roundRect(ctx, x - pad, y - pad, side + pad * 2, side + pad * 2, cellSize * 0.18);
 
   board.forEach((row, r) => {
     row.forEach((cell, c) => {
       const color = colorAt(r, c, cell);
-      ctx.fillStyle = color === null ? COLORS.emptyCell : blockColor(color);
-      drawCell(ctx, x + c * cellSize, y + r * cellSize, cellSize);
+      const cx = x + c * cellSize;
+      const cy = y + r * cellSize;
+      if (color === null) {
+        ctx.fillStyle = skin.emptyCell;
+        drawCell(ctx, cx, cy, cellSize);
+      } else {
+        drawBlock(ctx, cx, cy, cellSize, color, skin);
+      }
     });
   });
 }
@@ -287,9 +297,9 @@ function drawPiece(
   x: number,
   y: number,
   cellSize: number,
+  skin: SkinLook,
 ): void {
-  ctx.fillStyle = blockColor(color);
-  for (const b of piece.blocks) drawCell(ctx, x + b.col * cellSize, y + b.row * cellSize, cellSize);
+  for (const b of piece.blocks) drawBlock(ctx, x + b.col * cellSize, y + b.row * cellSize, cellSize, color, skin);
 }
 
 /** One block or empty Cell whose square starts at (x, y), in the current fill style. */
@@ -298,8 +308,88 @@ export function drawCell(ctx: CanvasRenderingContext2D, x: number, y: number, ce
   roundRect(ctx, x + pad / 2, y + pad / 2, cellSize - pad, cellSize - pad, cellSize * 0.12);
 }
 
-export function blockColor(index: number): string {
-  return BLOCK_COLORS[index % BLOCK_COLORS.length]!;
+export function blockColor(index: number, skin: SkinLook = DEFAULT_SKIN_LOOK): string {
+  return skin.blocks[index % skin.blocks.length]!;
+}
+
+/**
+ * One block of color `index` in the Skin's style, its square starting at (x, y).
+ * Respects the caller's globalAlpha (ghost, dimmed Tray Pieces).
+ */
+export function drawBlock(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  cellSize: number,
+  index: number,
+  skin: SkinLook = DEFAULT_SKIN_LOOK,
+): void {
+  const color = blockColor(index, skin);
+  const pad = Math.max(1, cellSize * 0.06);
+  const bx = x + pad / 2;
+  const by = y + pad / 2;
+  const s = cellSize - pad;
+  switch (skin.style) {
+    case "soft": {
+      ctx.fillStyle = color;
+      roundRect(ctx, bx, by, s, s, cellSize * 0.12);
+      ctx.fillStyle = "rgba(255, 255, 255, 0.18)";
+      roundRect(ctx, bx + s * 0.12, by + s * 0.1, s * 0.76, s * 0.22, s * 0.1);
+      return;
+    }
+    case "neon": {
+      ctx.fillStyle = withAlpha(color, 0.22);
+      roundRect(ctx, bx, by, s, s, cellSize * 0.16);
+      ctx.strokeStyle = color;
+      ctx.lineWidth = Math.max(1.5, s * 0.1);
+      const inset = ctx.lineWidth / 2;
+      ctx.beginPath();
+      ctx.roundRect(bx + inset, by + inset, s - inset * 2, s - inset * 2, cellSize * 0.14);
+      ctx.stroke();
+      ctx.fillStyle = withAlpha(color, 0.55);
+      roundRect(ctx, bx + s * 0.32, by + s * 0.32, s * 0.36, s * 0.36, s * 0.08);
+      return;
+    }
+    case "glossy": {
+      ctx.fillStyle = color;
+      roundRect(ctx, bx, by, s, s, s * 0.32);
+      ctx.fillStyle = "rgba(255, 255, 255, 0.45)";
+      ctx.beginPath();
+      ctx.ellipse(bx + s * 0.38, by + s * 0.3, s * 0.24, s * 0.12, -0.5, 0, Math.PI * 2);
+      ctx.fill();
+      return;
+    }
+    case "carved": {
+      ctx.fillStyle = color;
+      roundRect(ctx, bx, by, s, s, cellSize * 0.04);
+      ctx.fillStyle = mixColor(color, "#000000", 0.3);
+      ctx.fillRect(bx, by + s * 0.78, s, s * 0.22);
+      ctx.fillStyle = "rgba(0, 0, 0, 0.12)";
+      ctx.fillRect(bx, by + s * 0.3, s, s * 0.06);
+      ctx.fillRect(bx, by + s * 0.55, s, s * 0.05);
+      return;
+    }
+    case "bevel": {
+      const edge = s * 0.18;
+      ctx.fillStyle = mixColor(color, "#ffffff", 0.45); // light top-left
+      ctx.beginPath();
+      ctx.moveTo(bx, by + s);
+      ctx.lineTo(bx, by);
+      ctx.lineTo(bx + s, by);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = mixColor(color, "#000000", 0.4); // dark bottom-right
+      ctx.beginPath();
+      ctx.moveTo(bx + s, by);
+      ctx.lineTo(bx + s, by + s);
+      ctx.lineTo(bx, by + s);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = color;
+      ctx.fillRect(bx + edge, by + edge, s - edge * 2, s - edge * 2);
+      return;
+    }
+  }
 }
 
 function roundRect(

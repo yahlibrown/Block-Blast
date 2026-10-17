@@ -65,6 +65,9 @@ describe("resuming a Run", () => {
       dry: 2,
       over: false,
       paletteLevel: 0,
+      lifetime: 0,
+      unlocked: ["classic"],
+      runUnlocked: [],
     });
   });
 

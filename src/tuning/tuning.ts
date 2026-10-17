@@ -27,6 +27,14 @@ export const TUNING = {
     /** A Palette Shift happens each time the Run's score passes another multiple of this. */
     shiftEvery: 1000,
   },
+  skins: {
+    /**
+     * Lifetime Points needed to unlock each Skin, in catalogue order (rising).
+     * The first must be 0: it is the starting Skin. A Skin unlocks the moment
+     * Lifetime Points plus the current Run's score reach its threshold.
+     */
+    thresholds: { classic: 0, neon: 5000, candy: 15000, forest: 35000, gold: 75000 },
+  },
   /** Clear effects (ticket 10). Read by `src/renderer/effects`, not by the core. Lengths are in Cells. */
   effects: {
     /** Cleared Lines flash (white wash over their old blocks) for this long before bursting. */
