@@ -10,7 +10,7 @@
 
 **Blocked by:** 04 (Game Over and Play again), 08 (Save and resume), 11 (Sound, haptics and settings)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 - [x] At Game Over, the core adds the Run's final score to Lifetime Points
 - [x] The core emits a Skin unlocked event once per Skin, at the Placement where Lifetime Points plus the current score reach its threshold
@@ -26,3 +26,5 @@
 - Implemented on branch `ticket-13-skins-and-lifetime-points`. Covered by tests: core (`src/core/skins.test.ts`), profile/settings persistence, director cue and overlay banner, and the Skin look catalogue.
 - Human to verify on a phone: the five Skins look distinct and good (picker in Settings; Classic, Neon, Candy, Forest, Royal Gold); the mid-Run "New Skin unlocked!" banner reads well under the Board and never blocks a drag; the Game Over progress bar and reveal card (with "Use this Skin") look right, and the panel scrolls on short screens; Palette Shifts still tint the chosen Skin. Tip: to reach a threshold quickly, edit `TUNING.skins.thresholds` locally.
 - Thresholds are first guesses (0 / 5,000 / 15,000 / 35,000 / 75,000) in `TUNING.skins.thresholds`; tune by playtest.
+
+- 2026-10-17 (orchestrator): Implemented and merged into integration branch `block-blast` (review fixes merged at a75ddde). All acceptance criteria met.

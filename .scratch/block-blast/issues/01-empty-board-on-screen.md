@@ -4,7 +4,7 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** ready-for-human
 
 - [x] Running the dev script serves the app with live reload on desktop
 - [x] The dev server can be reached from a phone on the same Wi-Fi (exposed on the LAN), and the README says how
@@ -20,3 +20,5 @@
   - The Board is centered, fills the width and looks crisp.
   - Swiping, double-tapping and pulling down don't scroll, zoom or refresh the page. The CSS, viewport meta and gesture blocking are in place, but the box above stays unticked until this is checked on a real device.
   - If the phone can't connect, allow Node.js through Windows Firewall on private networks.
+
+- 2026-10-17 (orchestrator): Implemented and merged into integration branch `block-blast` (review fixes merged at a75ddde). Only the human checks above remain (on the Android phone / GitHub setup); set Status to resolved once verified.

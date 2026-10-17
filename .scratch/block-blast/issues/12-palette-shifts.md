@@ -4,7 +4,7 @@
 
 **Blocked by:** 05 (Scoring, Combo and Board Clear)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 - [x] The core emits a Palette Shift event with the new level when the score crosses a threshold
 - [x] Thresholds come from the tuning table
@@ -17,3 +17,5 @@
 
 - Implemented on branch `ticket-12-palette-shifts`. Core: `GameState.paletteLevel`, `paletteShift { level }` event (after boardClear, before trayDealt; one event with the final level even when a Placement passes several thresholds), `TUNING.palette.shiftEvery = 1000`. `serialize` writes `paletteLevel`, so ticket 08 saves it with the rest of the Run.
 - Human to verify by playtest (desktop + phone): the background/glow blend (~1.2 s) feels smooth and readable at each level, the HUD band behind the score changes with the canvas, and starting a new Run blends back to the base colors.
+
+- 2026-10-17 (orchestrator): Implemented and merged into integration branch `block-blast` (review fixes merged at a75ddde). All acceptance criteria met.

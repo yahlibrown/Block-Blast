@@ -9,7 +9,7 @@ The effects must run smoothly on the Android phone.
 
 **Blocked by:** 05 (Scoring, Combo and Board Clear)
 
-**Status:** ready-for-agent
+**Status:** ready-for-human
 
 - [x] Cleared Lines flash before their Cells empty
 - [x] Each cleared block emits particles in its color
@@ -20,6 +20,8 @@ The effects must run smoothly on the Android phone.
 
 ## Comments
 
-- Implemented on branch `ticket-10-clear-effects`. Simulation (pure, tested): `src/renderer/effects/clearEffects.ts`; drawing: `src/renderer/effects/drawEffects.ts`; numbers in `TUNING.effects`.
-- Because the core empties the Cells immediately, "flash before they empty" is drawn as an overlay: the cleared blocks are redrawn in their old colors with a white wash for `TUNING.effects.flashMs`, then burst. The game state (and input) never waits.
-- **Human must verify:** playtest on the Android phone that a large Multi-Clear and a Board Clear show no visible frame drops (particle count is capped by `TUNING.effects.particles.max`; lower it or `perBlock` if needed), and that the shake strength feels right.
+- Implemented on branch `ticket-10-clear-effects`. Simulation (pure, tested): `src/renderer/effects/clearEffects.ts`; drawing: `src/renderer/effects/drawEffects.ts`; numbers in `EFFECTS` (`src/renderer/effects/effectsTuning.ts`) and shake in `CLEAR_SHAKE` (`src/feedback/clearCues.ts`) after the review fixes.
+- Because the core empties the Cells immediately, "flash before they empty" is drawn as an overlay: the cleared blocks are redrawn in their old colors with a white wash for `EFFECTS.flashMs`, then burst. The game state (and input) never waits.
+- **Human must verify:** playtest on the Android phone that a large Multi-Clear and a Board Clear show no visible frame drops (particle count is capped by `EFFECTS.particles.max`; lower it or `perBlock` if needed), and that the shake strength feels right.
+
+- 2026-10-17 (orchestrator): Implemented and merged into integration branch `block-blast` (review fixes merged at a75ddde). Only the human checks above remain (on the Android phone / GitHub setup); set Status to resolved once verified.

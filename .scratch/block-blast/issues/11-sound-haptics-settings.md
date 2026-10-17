@@ -27,3 +27,5 @@ For the human to verify on the Android phone (and once on desktop):
 - Sound starts after the first touch, and still works after switching apps and coming back.
 - Vibration is felt, and gets stronger for bigger Clears and a Board Clear.
 - The gear (top-left of the score band) opens the sheet. Turning Sound or Vibration off silences it right away, and the choice survives a reload.
+
+- 2026-10-17 (orchestrator): Implemented and merged into integration branch `block-blast` (review fixes merged at a75ddde). Only the human checks above remain (on the Android phone / GitHub setup); set Status to resolved once verified.

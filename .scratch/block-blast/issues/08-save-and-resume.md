@@ -4,7 +4,7 @@
 
 **Blocked by:** 04 (Game Over and Play again), 05 (Scoring, Combo and Board Clear)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 - [x] The core serializes the full state to versioned plain data and restores it
 - [x] The state is saved after every Placement and on Game Over
@@ -17,3 +17,5 @@
 
 Implemented in `src/persistence/persistence.ts` (tested with an in-memory storage in `persistence.test.ts`; core resume tests in `src/core/resume.test.ts`), wired in `src/shell/main.ts`. Human to verify on the phone: play a few Placements, swipe the app away (or reload), reopen and check the Board, Tray, score and Combo are the same; finish a Run, reopen and check the Game Over screen shows with Play again working; Best Score stays after reload.
 
+
+- 2026-10-17 (orchestrator): Implemented and merged into integration branch `block-blast` (review fixes merged at a75ddde). All acceptance criteria met.

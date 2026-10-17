@@ -4,7 +4,7 @@
 
 **Blocked by:** 01 (Empty Board on screen)
 
-**Status:** ready-for-agent
+**Status:** ready-for-human
 
 Note: creating the GitHub repo and logging in needs the human once. Guide them through it (e.g. with a short step-by-step wizard) instead of doing it for them.
 
@@ -26,3 +26,5 @@ The human must still:
 - Verify on the Android phone: Add to Home Screen, opens full-screen in portrait, works in airplane mode.
 - Spot-check updates: after a later push, the new version appears after relaunching (the background update finishes on the first online launch; a second launch shows it).
 - Offline and update behaviour were only checked by inspecting the build output (generated `sw.js`, manifest, registration), not on a real device or in CI. The workflow has not run yet.
+
+- 2026-10-17 (orchestrator): Implemented and merged into integration branch `block-blast` (review fixes merged at a75ddde). Only the human checks above remain (on the Android phone / GitHub setup); set Status to resolved once verified.

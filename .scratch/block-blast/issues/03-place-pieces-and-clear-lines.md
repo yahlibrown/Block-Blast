@@ -6,7 +6,7 @@ The core exposes the seam from the spec: create a Run, attempt a Placement (Tray
 
 **Blocked by:** 01 (Empty Board on screen)
 
-**Status:** ready-for-agent
+**Status:** ready-for-human
 
 - [x] The Piece catalogue contains the standard Block Blast shapes, fixed orientation
 - [ ] A Tray of three Pieces is shown and each can be dragged onto the Board by touch and mouse
@@ -22,3 +22,5 @@ The core exposes the seam from the spec: create a Run, attempt a Placement (Tray
 
 - Implemented on branch `ticket-03-place-pieces`. Core seam: `create`, `attemptPlacement`, `queryFit`, `trayFits`, `serialize`, `restore` (see `src/core/index.ts`). Tests: `src/core/placement.test.ts`, `src/core/core.test.ts`.
 - **Human to verify** (left unticked): drag a Tray Piece onto the Board by touch on the phone and by mouse on desktop; a bad drop snaps back to its Tray slot. Drag feel (lift offset, ghost preview, Line highlights) is ticket 07.
+
+- 2026-10-17 (orchestrator): Implemented and merged into integration branch `block-blast` (review fixes merged at a75ddde). Only the human checks above remain (on the Android phone / GitHub setup); set Status to resolved once verified.

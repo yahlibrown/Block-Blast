@@ -8,7 +8,7 @@
 
 **Blocked by:** 05 (Scoring, Combo and Board Clear)
 
-**Status:** ready-for-agent
+**Status:** ready-for-human
 
 - [x] The core emits a NEW BEST event exactly once per Run, at the first Placement that pushes the score past the Best Score held at the start of the Run (none if the Best Score was 0)
 - [x] Praise text escalates with Multi-Clear size and Combo level; the mapping is in one table
@@ -22,3 +22,5 @@
 
 - Implemented on `ticket-09-praise-and-score-payoffs`. Core: `runStartBest` + `newBest` event. Feedback director in `src/feedback/` (Praise table in `praise.ts`), text pops drawn on the canvas, HUD score count-up.
 - **Human to verify (phone playtest):** the messages feel rewarding, not cluttered — Praise size/colors per tier, COMBO ×N placement (shown from ×2, below the Praise), NEW BEST! burst, count-up speed. Tune `PRAISE` in `src/feedback/praise.ts`, timings in `src/feedback/overlay.ts`, sizes/positions in `drawOverlayText` (`src/renderer/renderer.ts`).
+
+- 2026-10-17 (orchestrator): Implemented and merged into integration branch `block-blast` (review fixes merged at a75ddde). Only the human checks above remain (on the Android phone / GitHub setup); set Status to resolved once verified.

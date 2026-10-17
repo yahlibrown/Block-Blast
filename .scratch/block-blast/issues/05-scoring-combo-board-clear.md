@@ -13,7 +13,7 @@ All numbers live in a single tuning table. The Best Score is kept in memory for 
 
 **Blocked by:** 03 (Place Pieces and Clear Lines)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 - [x] The current score and Best Score are visible during play and on the Game Over screen
 - [x] The core emits events for: points from a Placement, a Clear (Lines, Multi-Clear size, points), Combo increased (level), Combo broken, and Board Clear (bonus)
@@ -24,3 +24,5 @@ All numbers live in a single tuning table. The Best Score is kept in memory for 
 
 - Implemented on branch `ticket-05-scoring-combo-board-clear`. Score and Best Score show in a DOM HUD band above the canvas during play (`src/shell/hud.ts`), and as rows in ticket 04's Game Over `stats` container (`createScoreStats`). "Play again" carries the Best Score into the next Run (`create({ seed, best })`); it is in memory only until ticket 08.
 - Human to verify on the phone: the HUD band sits clear of the notch/status bar, the Board still fits below it, and the Game Over screen shows the right score and Best Score.
+
+- 2026-10-17 (orchestrator): Implemented and merged into integration branch `block-blast` (review fixes merged at a75ddde). All acceptance criteria met.

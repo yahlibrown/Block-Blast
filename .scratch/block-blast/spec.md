@@ -1,6 +1,6 @@
 # Spec: Ad-free Block Blast clone
 
-Status: ready-for-agent
+Status: implemented (awaiting phone playtests)
 
 ## Problem Statement
 

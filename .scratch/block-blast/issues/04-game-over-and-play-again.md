@@ -4,7 +4,7 @@
 
 **Blocked by:** 03 (Place Pieces and Clear Lines)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 - [x] The core emits a Game Over event when no remaining Tray Piece fits anywhere
 - [x] Game Over is detected both after a Placement and immediately after a new Tray is dealt
@@ -16,3 +16,5 @@
 
 - Human: on a phone, play until stuck and check the Game Over screen appears over the Board, drags are blocked behind it, and one tap on "Play again" starts a fresh Run (empty Board, new Tray).
 - The "Game Over right after a deal" test is a property over 200 seeds (gameOver follows trayDealt exactly when no dealt Piece fits), so it keeps holding once ticket 06 adds the fit guarantee.
+
+- 2026-10-17 (orchestrator): Implemented and merged into integration branch `block-blast` (review fixes merged at a75ddde). All acceptance criteria met.
