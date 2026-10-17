@@ -1,6 +1,7 @@
 // Serialize / restore: the full core state as versioned plain (JSON-safe) data.
 // Tests build Boards and Trays through `restore`; persistence (ticket 08) stores
 // the output of `serialize`.
+import { paletteLevelFor } from "./palette";
 import { isPieceId, PIECES, type PieceId } from "./pieces";
 import {
   BOARD_SIZE,
@@ -42,6 +43,8 @@ export interface SaveData {
   readonly dry?: number;
   /** Game Over reached. Defaults to false. */
   readonly over?: boolean;
+  /** Palette Shift level. Defaults to the level the saved score has reached. */
+  readonly paletteLevel?: number;
 }
 
 export class InvalidSaveError extends Error {
@@ -62,6 +65,7 @@ export function serialize(state: GameState): Required<SaveData> {
     combo: state.combo,
     dry: state.dry,
     over: state.over,
+    paletteLevel: state.paletteLevel,
   };
 }
 
@@ -107,7 +111,10 @@ export function restore(data: SaveData): GameState {
   const over = d.over ?? false;
   if (typeof over !== "boolean") fail("bad over");
 
-  return { board: cells, tray: slots, rng: rng >>> 0, score, best, combo, dry, over };
+  const paletteLevel =
+    d.paletteLevel === undefined ? paletteLevelFor(score) : count(d.paletteLevel, "paletteLevel");
+
+  return { board: cells, tray: slots, rng: rng >>> 0, score, best, combo, dry, over, paletteLevel };
 }
 
 /** An optional non-negative integer field; missing means 0. */

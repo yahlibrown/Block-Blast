@@ -23,6 +23,10 @@ export const TUNING = {
     /** Flat bonus when a Clear leaves the Board fully empty. */
     boardClearBonus: 300,
   },
+  palette: {
+    /** A Palette Shift happens each time the Run's score passes another multiple of this. */
+    shiftEvery: 1000,
+  },
 } as const;
 
 export type Tuning = typeof TUNING;

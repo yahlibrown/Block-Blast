@@ -62,6 +62,7 @@ describe("resuming a Run", () => {
       combo: 3,
       dry: 2,
       over: false,
+      paletteLevel: 0,
     });
   });
 
