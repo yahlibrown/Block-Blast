@@ -1,25 +1,40 @@
 // Pointer drag: Tray Piece → Board origin. Pointer Events cover touch and mouse.
-// Holds no rules: the shell asks the core whether the origin fits and attempts the Placement.
+// Holds no rules: it asks the host, which asks the core, what fits, for the Snap, and to attempt the Placement.
 import type { GameState, Position } from "../core";
 import { layoutGame, type DragView } from "../renderer/renderer";
-import { amplifiedTopLeft, boardOrigin, clampOnScreen, liftedTopLeft, pieceSize, type Point } from "./geometry";
-import type { PieceAt } from "./snapBack";
+import {
+  amplifiedTopLeft,
+  boardPosition,
+  centerOverBoard,
+  clampOnScreen,
+  liftedTopLeft,
+  pieceSize,
+  type Point,
+} from "./geometry";
+import type { PieceAt } from "./returnFlight";
+import { snapOrigin, type SnapTuning } from "./snap";
 
 /** How far the dragged Piece's bottom edge floats above the finger, in Board Cells. */
 const DRAG_LIFT_CELLS = 1.2;
 /** How many times further than the finger a touch Drag carries the Piece. Mouse Drags stay 1:1. */
 const DRAG_GAIN = 1.5;
+/** Snap: how far, in Cells, the Ghost may reach for a spot that fits, and how much closer a spot must be to win it over. */
+const SNAP: SnapTuning = { reach: 1.5, stickiness: 0.25 };
+/** How far, in Cells, the finger must move from where it grabbed before a Drag can make a Placement: a tap never places. */
+const TAP_SLOP_CELLS = 0.5;
 
 export interface DragHost {
   getState(): GameState;
   /** Canvas size in CSS pixels. */
   getSize(): { width: number; height: number };
-  /** Attempt the Placement; return true if it landed (false → snap back). */
+  /** Core fit query: does the Piece in `slot` fit at `origin`? */
+  fitsAt(slot: number, origin: Position): boolean;
+  /** Attempt the Placement; return true if it landed (false → Return). */
   place(slot: number, origin: Position): boolean;
   /** Drag view changed; redraw. */
   changed(drag: DragView | null): void;
   /** The Piece in `slot` didn't land (rejected or cancelled): fly it back from where it was let go. */
-  snapBack(slot: number, from: PieceAt): void;
+  returnToTray(slot: number, from: PieceAt): void;
 }
 
 export function attachDrag(canvas: HTMLCanvasElement, host: DragHost): void {
@@ -29,6 +44,9 @@ export function attachDrag(canvas: HTMLCanvasElement, host: DragHost): void {
     slot: number;
     gain: number;
     anchor: { finger: Point; at: Point } | null;
+    /** Where the finger grabbed, and whether it has since moved far enough to count as a Drag, not a tap. */
+    grab: Point;
+    moved: boolean;
   } | null = null;
   let drag: DragView | null = null;
 
@@ -48,7 +66,7 @@ export function attachDrag(canvas: HTMLCanvasElement, host: DragHost): void {
       (s) => p.x >= s.x && p.x < s.x + s.w && p.y >= s.y && p.y < s.y + s.h,
     );
     if (slot < 0 || !host.getState().tray[slot]) return;
-    active = { pointerId: e.pointerId, slot, gain: e.pointerType === "mouse" ? 1 : DRAG_GAIN, anchor: null };
+    active = { pointerId: e.pointerId, slot, gain: e.pointerType === "mouse" ? 1 : DRAG_GAIN, anchor: null, grab: p, moved: false };
     canvas.setPointerCapture(e.pointerId);
     move(p);
   });
@@ -61,8 +79,8 @@ export function attachDrag(canvas: HTMLCanvasElement, host: DragHost): void {
     if (active?.pointerId !== e.pointerId) return;
     const released = drag;
     end();
-    // Same origin the ghost preview showed, so the drop lands exactly there.
-    if (released && !host.place(released.slot, released.origin)) snapBack(released);
+    // Same origin the Ghost showed (after any Snap), so the drop lands exactly there; no Ghost → Return.
+    if (released && !(released.origin && host.place(released.slot, released.origin))) returnToTray(released);
   });
 
   for (const type of ["pointercancel", "lostpointercapture"] as const) {
@@ -70,12 +88,12 @@ export function attachDrag(canvas: HTMLCanvasElement, host: DragHost): void {
       if (active?.pointerId !== e.pointerId) return;
       const released = drag;
       end();
-      if (released) snapBack(released);
+      if (released) returnToTray(released);
     });
   }
 
-  function snapBack(released: DragView): void {
-    host.snapBack(released.slot, { x: released.x, y: released.y, cellSize: layout().board.cellSize });
+  function returnToTray(released: DragView): void {
+    host.returnToTray(released.slot, { x: released.x, y: released.y, cellSize: layout().board.cellSize });
   }
 
   function move(p: Point): void {
@@ -87,10 +105,19 @@ export function attachDrag(canvas: HTMLCanvasElement, host: DragHost): void {
     const free = active.anchor
       ? amplifiedTopLeft(active.anchor.at, active.anchor.finger, p, active.gain)
       : liftedTopLeft(p, entry.piece, cellSize, cellSize * DRAG_LIFT_CELLS);
-    const at = clampOnScreen(free, pieceSize(entry.piece, cellSize), host.getSize());
+    const size = pieceSize(entry.piece, cellSize);
+    const at = clampOnScreen(free, size, host.getSize());
     // Re-anchor on grab and whenever a screen edge stops the Piece, so moving back moves it at once.
     if (!active.anchor || at.x !== free.x || at.y !== free.y) active.anchor = { finger: p, at };
-    drag = { slot: active.slot, x: at.x, y: at.y, origin: boardOrigin(board, at) };
+    const slot = active.slot;
+    active.moved ||= Math.hypot(p.x - active.grab.x, p.y - active.grab.y) >= cellSize * TAP_SLOP_CELLS;
+    // No Ghost (letting go Returns) for a tap, or while the Piece is mostly off the Board, e.g. over the Tray.
+    const columns = host.getState().board.length;
+    const origin =
+      active.moved && centerOverBoard(board, columns, at, size)
+        ? snapOrigin(boardPosition(board, at), (o) => host.fitsAt(slot, o), drag?.origin ?? null, SNAP)
+        : null;
+    drag = { slot, x: at.x, y: at.y, origin };
     host.changed(drag);
   }
 
