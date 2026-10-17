@@ -1,0 +1,3 @@
+# Ship as a PWA on GitHub Pages, with a pure TypeScript core and a Canvas renderer
+
+The goal is an ad-free Block Blast that is easy to test and gets onto one Android phone with almost no friction. So we ship it as an installable, offline-capable PWA, auto-deployed to GitHub Pages, instead of a native app (Capacitor, APK sideloading) or a game engine (Unity, Godot). All game rules live in a framework-free TypeScript core with no DOM access, which is unit-tested with Vitest. A thin Canvas 2D layer handles rendering, input and effects, and there is no React or engine. This keeps the edit → push → refresh loop instant and puts every rule under fast tests, at the cost of hand-building the animation and "juice" a game engine would have provided.
