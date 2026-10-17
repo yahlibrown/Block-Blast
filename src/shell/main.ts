@@ -6,6 +6,8 @@ import { render, type DragView } from "../renderer/renderer";
 import { createGameOverScreen } from "./gameOver";
 import { createFrameLoop } from "./loop";
 import { createBackdropTransition } from "./backdrop";
+import { createClearEffects } from "../renderer/effects/clearEffects";
+import { effectsOverlay } from "../renderer/effects/drawEffects";
 import { createPersistence } from "../persistence/persistence";
 import "./style.css";
 
@@ -44,14 +46,21 @@ function resize(): void {
   draw(); // resizing clears the canvas: redraw now, not next frame
 }
 
-function draw(): void {
+// Clear effects (ticket 10). TODO(review): fold into ticket 09's feedback director if it grows one.
+const effects = createClearEffects();
+let lastNow = 0;
+
+function draw(now: number = lastNow): void {
+  lastNow = now;
   const preview = drag ? queryFit(state, drag.slot, drag.origin) : null;
+  const boardOverlay = effectsOverlay(effects.frame(now), state.board);
   render(ctx!, cssWidth, cssHeight, {
     state,
     drag,
     preview,
     trayFits: fits,
     backdrop: backdrop.current(),
+    boardOverlay,
   });
 }
 
@@ -99,6 +108,9 @@ attachDrag(canvas, {
     const result = attemptPlacement(state, slot, origin);
     if (!result.ok) return false; // snaps back: the Piece stays in its Tray slot
     setState(result.state);
+    // State changes at once; effects only draw on top, so the next Piece can be dragged right away.
+    effects.onPlacement(result.events, performance.now());
+    loop.animate((now) => effects.active(now));
     if (result.events.some((e) => e.type === "gameOver")) {
       gameOverStats.update(state);
       gameOver.show();
