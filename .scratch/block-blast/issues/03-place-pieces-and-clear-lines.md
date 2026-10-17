@@ -8,12 +8,17 @@ The core exposes the seam from the spec: create a Run, attempt a Placement (Tray
 
 **Status:** ready-for-agent
 
-- [ ] The Piece catalogue contains the standard Block Blast shapes, fixed orientation
+- [x] The Piece catalogue contains the standard Block Blast shapes, fixed orientation
 - [ ] A Tray of three Pieces is shown and each can be dragged onto the Board by touch and mouse
-- [ ] A Placement that overlaps a filled Cell or goes off the Board is rejected and the Piece snaps back
-- [ ] A placed Piece fills its Cells and leaves the Tray
-- [ ] All Lines completed by one Placement Clear together, including a row and a column at once
-- [ ] A new Tray is dealt only after all three Pieces of the current Tray are placed
-- [ ] The core returns an ordered list of events for each Placement (at least: Piece placed, Lines cleared, Tray dealt)
-- [ ] Core tests cover: a valid Placement, overlap rejection, out-of-bounds rejection, an empty Tray slot rejection, a single-Line Clear, a row+column Clear, a new Tray after three Placements
-- [ ] Tests set up Boards and Trays as plain data, not by replaying many moves
+- [x] A Placement that overlaps a filled Cell or goes off the Board is rejected and the Piece snaps back
+- [x] A placed Piece fills its Cells and leaves the Tray
+- [x] All Lines completed by one Placement Clear together, including a row and a column at once
+- [x] A new Tray is dealt only after all three Pieces of the current Tray are placed
+- [x] The core returns an ordered list of events for each Placement (at least: Piece placed, Lines cleared, Tray dealt)
+- [x] Core tests cover: a valid Placement, overlap rejection, out-of-bounds rejection, an empty Tray slot rejection, a single-Line Clear, a row+column Clear, a new Tray after three Placements
+- [x] Tests set up Boards and Trays as plain data, not by replaying many moves
+
+## Comments
+
+- Implemented on branch `ticket-03-place-pieces`. Core seam: `create`, `attemptPlacement`, `queryFit`, `trayFits`, `serialize`, `restore` (see `src/core/index.ts`). Tests: `src/core/placement.test.ts`, `src/core/core.test.ts`.
+- **Human to verify** (left unticked): drag a Tray Piece onto the Board by touch on the phone and by mouse on desktop; a bad drop snaps back to its Tray slot. Drag feel (lift offset, ghost preview, Line highlights) is ticket 07.

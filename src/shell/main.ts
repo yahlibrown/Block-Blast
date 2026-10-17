@@ -1,6 +1,7 @@
 // Shell: wires the core to the Canvas. Owns the DOM and the frame loop.
-import { create } from "../core";
-import { render } from "../renderer/renderer";
+import { attemptPlacement, create, type GameState } from "../core";
+import { attachDrag } from "../input/drag";
+import { render, type DragView } from "../renderer/renderer";
 import "./style.css";
 
 const canvas = document.querySelector<HTMLCanvasElement>("#game");
@@ -8,7 +9,8 @@ if (!canvas) throw new Error("Missing #game canvas");
 const ctx = canvas.getContext("2d");
 if (!ctx) throw new Error("Canvas 2D not supported");
 
-const state = create({ seed: Date.now() });
+let state: GameState = create({ seed: Date.now() });
+let drag: DragView | null = null;
 
 let cssWidth = 0;
 let cssHeight = 0;
@@ -25,12 +27,28 @@ function resize(): void {
 }
 
 function draw(): void {
-  render(ctx!, cssWidth, cssHeight, state.board);
+  render(ctx!, cssWidth, cssHeight, { state, drag });
 }
 
 new ResizeObserver(resize).observe(canvas);
 window.addEventListener("resize", resize);
 resize();
+
+attachDrag(canvas, {
+  getState: () => state,
+  getSize: () => ({ width: cssWidth, height: cssHeight }),
+  place(slot, origin) {
+    const result = attemptPlacement(state, slot, origin);
+    if (!result.ok) return false; // snaps back: the Piece stays in its Tray slot
+    state = result.state;
+    draw();
+    return true;
+  },
+  changed(next) {
+    drag = next;
+    draw();
+  },
+});
 
 // Block browser gestures the CSS can't fully stop (iOS-style pinch, double-tap zoom).
 for (const type of ["gesturestart", "dblclick"] as const) {
