@@ -61,6 +61,14 @@ export type GameEvent =
       readonly bonus: number;
     }
   | {
+      /** The score passed the Best Score held at the start of the Run. At most once per Run; never if that was 0. */
+      readonly type: "newBest";
+      /** The score after this Placement. */
+      readonly score: number;
+      /** The Best Score the Run started with (the one just beaten). */
+      readonly previous: number;
+    }
+  | {
       readonly type: "trayDealt";
       readonly tray: Tray;
     }
@@ -155,7 +163,11 @@ export function attemptPlacement(
   } else if (combo.broke !== null) {
     events.push({ type: "comboBroken", level: combo.broke });
   }
-  // (Ticket 09) newBest, (12) paletteShift, (13) skinUnlocked slot in here, before trayDealt.
+  // (12) paletteShift goes here, before newBest; (13) skinUnlocked after it.
+  const previous = state.runStartBest;
+  if (previous > 0 && state.score <= previous && score > previous) {
+    events.push({ type: "newBest", score, previous });
+  }
 
   let tray: Tray = state.tray.map((t, i) => (i === slot ? null : t));
   let rng = state.rng;

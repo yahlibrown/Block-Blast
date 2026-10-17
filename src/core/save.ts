@@ -36,6 +36,8 @@ export interface SaveData {
   readonly score?: number;
   /** Best Score. Defaults to 0. */
   readonly best?: number;
+  /** Best Score at the start of this Run (for NEW BEST). Defaults to `best`. */
+  readonly runStartBest?: number;
   /** Combo level. Defaults to 0. */
   readonly combo?: number;
   /** Placements in a row without a Clear. Defaults to 0. */
@@ -59,6 +61,7 @@ export function serialize(state: GameState): Required<SaveData> {
     rng: state.rng,
     score: state.score,
     best: state.best,
+    runStartBest: state.runStartBest,
     combo: state.combo,
     dry: state.dry,
     over: state.over,
@@ -100,14 +103,16 @@ export function restore(data: SaveData): GameState {
   if (typeof rng !== "number" || !Number.isInteger(rng)) fail("bad rng");
 
   const score = count(d.score, "score");
-  const best = Math.max(count(d.best, "best"), score);
+  const savedBest = count(d.best, "best");
+  const runStartBest = d.runStartBest === undefined ? savedBest : count(d.runStartBest, "runStartBest");
+  const best = Math.max(savedBest, score, runStartBest);
   const combo = count(d.combo, "combo");
   const dry = count(d.dry, "dry");
 
   const over = d.over ?? false;
   if (typeof over !== "boolean") fail("bad over");
 
-  return { board: cells, tray: slots, rng: rng >>> 0, score, best, combo, dry, over };
+  return { board: cells, tray: slots, rng: rng >>> 0, score, best, runStartBest, combo, dry, over };
 }
 
 /** An optional non-negative integer field; missing means 0. */
