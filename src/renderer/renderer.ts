@@ -1,5 +1,5 @@
 // Canvas 2D renderer. Draws game state; holds no game rules.
-import type { Board, GameState, Piece } from "../core";
+import type { Board, Cell, FitResult, GameState, Piece, Position } from "../core";
 
 export interface BoardLayout {
   /** Top-left of the Board, in CSS pixels. */
@@ -29,18 +29,30 @@ export interface DragView {
   readonly slot: number;
   readonly x: number;
   readonly y: number;
+  /** Board origin the Piece would land on if released now (same one the ghost shows). */
+  readonly origin: Position;
 }
 
 export interface View {
   readonly state: GameState;
   readonly drag: DragView | null;
+  /** Core fit query for the dragged Piece at `drag.origin`: ghost Cells + Lines that would Clear. */
+  readonly preview: FitResult | null;
+  /** Core Tray fit query: a slot whose Piece fits nowhere is drawn dimmed. */
+  readonly trayFits: readonly boolean[];
 }
 
 const COLORS = {
   background: "#1b2440",
   boardBackground: "#121a30",
   emptyCell: "#232f52",
+  /** Wash over the Lines that would Clear. */
+  lineHighlight: "rgba(255, 255, 255, 0.25)",
 } as const;
+
+/** Opacity of ghost preview Cells, and of Tray Pieces that fit nowhere. */
+const GHOST_ALPHA = 0.4;
+const DIMMED_ALPHA = 0.3;
 
 /** Block color per core color index (a Skin will replace this in ticket 13). */
 const BLOCK_COLORS = [
@@ -90,19 +102,45 @@ export function render(
   const columns = board[0]?.length ?? 0;
   if (columns === 0) return;
   const layout = layoutGame(width, height, columns);
-  drawBoard(ctx, layout.board, board);
+  const dragged = view.drag ? (tray[view.drag.slot] ?? null) : null;
+  const preview = dragged && view.preview?.fits ? view.preview : null;
+
+  // Cells of the Lines that would Clear: their blocks take the dragged Piece's color (as in Block Blast).
+  const clearing: Position[] = [];
+  if (preview) {
+    const inClearedCol = new Set(preview.cols);
+    board.forEach((_, r) => {
+      for (let c = 0; c < columns; c++) {
+        if (preview.rows.includes(r) || inClearedCol.has(c)) clearing.push({ row: r, col: c });
+      }
+    });
+  }
+  const recolor = new Set(clearing.map((p) => p.row * columns + p.col));
+  drawBoard(ctx, layout.board, board, (r, c, cell) =>
+    cell !== null && dragged && recolor.has(r * columns + c) ? dragged.color : cell,
+  );
+
+  if (preview && dragged) {
+    const { x, y, cellSize } = layout.board;
+    // Ghost: exactly the Cells the Piece would fill. Solid when it completes a Line.
+    ctx.globalAlpha = clearing.length > 0 ? 1 : GHOST_ALPHA;
+    ctx.fillStyle = blockColor(dragged.color);
+    for (const p of preview.cells) drawCell(ctx, x + p.col * cellSize, y + p.row * cellSize, cellSize);
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = COLORS.lineHighlight;
+    for (const p of clearing) drawCell(ctx, x + p.col * cellSize, y + p.row * cellSize, cellSize);
+  }
 
   tray.forEach((entry, slot) => {
     if (!entry || view.drag?.slot === slot) return;
     const at = trayPieceOrigin(layout, slot, entry.piece);
+    ctx.globalAlpha = view.trayFits[slot] === false ? DIMMED_ALPHA : 1;
     drawPiece(ctx, entry.piece, entry.color, at.x, at.y, layout.trayCellSize);
   });
+  ctx.globalAlpha = 1;
 
-  if (view.drag) {
-    const entry = tray[view.drag.slot];
-    if (entry) {
-      drawPiece(ctx, entry.piece, entry.color, view.drag.x, view.drag.y, layout.board.cellSize);
-    }
+  if (view.drag && dragged) {
+    drawPiece(ctx, dragged.piece, dragged.color, view.drag.x, view.drag.y, layout.board.cellSize);
   }
 }
 
@@ -116,7 +154,12 @@ export function trayPieceOrigin(layout: GameLayout, slot: number, piece: Piece):
   };
 }
 
-function drawBoard(ctx: CanvasRenderingContext2D, layout: BoardLayout, board: Board): void {
+function drawBoard(
+  ctx: CanvasRenderingContext2D,
+  layout: BoardLayout,
+  board: Board,
+  colorAt: (row: number, col: number, cell: Cell) => Cell,
+): void {
   const { x, y, cellSize } = layout;
   const side = cellSize * board.length;
   const pad = Math.max(1, cellSize * 0.06);
@@ -126,15 +169,9 @@ function drawBoard(ctx: CanvasRenderingContext2D, layout: BoardLayout, board: Bo
 
   board.forEach((row, r) => {
     row.forEach((cell, c) => {
-      ctx.fillStyle = cell === null ? COLORS.emptyCell : blockColor(cell);
-      roundRect(
-        ctx,
-        x + c * cellSize + pad / 2,
-        y + r * cellSize + pad / 2,
-        cellSize - pad,
-        cellSize - pad,
-        cellSize * 0.12,
-      );
+      const color = colorAt(r, c, cell);
+      ctx.fillStyle = color === null ? COLORS.emptyCell : blockColor(color);
+      drawCell(ctx, x + c * cellSize, y + r * cellSize, cellSize);
     });
   });
 }
@@ -147,18 +184,14 @@ function drawPiece(
   y: number,
   cellSize: number,
 ): void {
-  const pad = Math.max(1, cellSize * 0.06);
   ctx.fillStyle = blockColor(color);
-  for (const b of piece.blocks) {
-    roundRect(
-      ctx,
-      x + b.col * cellSize + pad / 2,
-      y + b.row * cellSize + pad / 2,
-      cellSize - pad,
-      cellSize - pad,
-      cellSize * 0.12,
-    );
-  }
+  for (const b of piece.blocks) drawCell(ctx, x + b.col * cellSize, y + b.row * cellSize, cellSize);
+}
+
+/** One block or empty Cell whose square starts at (x, y), in the current fill style. */
+function drawCell(ctx: CanvasRenderingContext2D, x: number, y: number, cellSize: number): void {
+  const pad = Math.max(1, cellSize * 0.06);
+  roundRect(ctx, x + pad / 2, y + pad / 2, cellSize - pad, cellSize - pad, cellSize * 0.12);
 }
 
 function blockColor(index: number): string {

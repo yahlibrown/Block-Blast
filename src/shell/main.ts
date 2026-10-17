@@ -1,7 +1,8 @@
 // Shell: wires the core to the Canvas. Owns the DOM and the frame loop.
-import { attemptPlacement, create, type GameState } from "../core";
+import { attemptPlacement, create, queryFit, trayFits, type GameState } from "../core";
 import { attachDrag } from "../input/drag";
 import { render, type DragView } from "../renderer/renderer";
+import { createFrameLoop } from "./loop";
 import "./style.css";
 
 const canvas = document.querySelector<HTMLCanvasElement>("#game");
@@ -10,6 +11,7 @@ const ctx = canvas.getContext("2d");
 if (!ctx) throw new Error("Canvas 2D not supported");
 
 let state: GameState = create({ seed: Date.now() });
+let fits = trayFits(state); // recomputed after every Placement
 let drag: DragView | null = null;
 
 let cssWidth = 0;
@@ -23,11 +25,21 @@ function resize(): void {
   canvas!.width = Math.round(cssWidth * dpr);
   canvas!.height = Math.round(cssHeight * dpr);
   ctx!.setTransform(dpr, 0, 0, dpr, 0, 0);
-  draw();
+  draw(); // resizing clears the canvas: redraw now, not next frame
 }
 
 function draw(): void {
-  render(ctx!, cssWidth, cssHeight, { state, drag });
+  const preview = drag ? queryFit(state, drag.slot, drag.origin) : null;
+  render(ctx!, cssWidth, cssHeight, { state, drag, preview, trayFits: fits });
+}
+
+/** All redraws go through this loop; animations register with `loop.animate`. */
+const loop = createFrameLoop(draw, (cb) => requestAnimationFrame(cb));
+
+function setState(next: GameState): void {
+  state = next;
+  fits = trayFits(state);
+  loop.invalidate();
 }
 
 new ResizeObserver(resize).observe(canvas);
@@ -40,13 +52,12 @@ attachDrag(canvas, {
   place(slot, origin) {
     const result = attemptPlacement(state, slot, origin);
     if (!result.ok) return false; // snaps back: the Piece stays in its Tray slot
-    state = result.state;
-    draw();
+    setState(result.state);
     return true;
   },
   changed(next) {
     drag = next;
-    draw();
+    loop.invalidate();
   },
 });
 

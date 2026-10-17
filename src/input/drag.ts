@@ -1,7 +1,11 @@
 // Pointer drag: Tray Piece → Board origin. Pointer Events cover touch and mouse.
-// Holds no rules: it asks the shell to attempt the Placement on release.
+// Holds no rules: the shell asks the core whether the origin fits and attempts the Placement.
 import type { GameState, Position } from "../core";
-import { layoutGame, trayPieceOrigin, type DragView } from "../renderer/renderer";
+import { layoutGame, type DragView } from "../renderer/renderer";
+import { boardOrigin, liftedTopLeft, type Point } from "./geometry";
+
+/** How far the dragged Piece's bottom edge floats above the finger, in Board Cells. */
+const DRAG_LIFT_CELLS = 1.2;
 
 export interface DragHost {
   getState(): GameState;
@@ -14,14 +18,14 @@ export interface DragHost {
 }
 
 export function attachDrag(canvas: HTMLCanvasElement, host: DragHost): void {
-  let active: { pointerId: number; slot: number; dx: number; dy: number } | null = null;
+  let active: { pointerId: number; slot: number } | null = null;
   let drag: DragView | null = null;
 
   const layout = () => {
     const { width, height } = host.getSize();
     return layoutGame(width, height, host.getState().board.length);
   };
-  const point = (e: PointerEvent) => {
+  const point = (e: PointerEvent): Point => {
     const r = canvas.getBoundingClientRect();
     return { x: e.clientX - r.left, y: e.clientY - r.top };
   };
@@ -29,21 +33,11 @@ export function attachDrag(canvas: HTMLCanvasElement, host: DragHost): void {
   canvas.addEventListener("pointerdown", (e) => {
     if (active) return;
     const p = point(e);
-    const l = layout();
-    const slot = l.traySlots.findIndex(
+    const slot = layout().traySlots.findIndex(
       (s) => p.x >= s.x && p.x < s.x + s.w && p.y >= s.y && p.y < s.y + s.h,
     );
-    const entry = host.getState().tray[slot];
-    if (slot < 0 || !entry) return;
-    // Keep the grabbed point of the Piece under the finger as it grows to Board scale.
-    const rest = trayPieceOrigin(l, slot, entry.piece);
-    const scale = l.board.cellSize / l.trayCellSize;
-    active = {
-      pointerId: e.pointerId,
-      slot,
-      dx: (p.x - rest.x) * scale,
-      dy: (p.y - rest.y) * scale,
-    };
+    if (slot < 0 || !host.getState().tray[slot]) return;
+    active = { pointerId: e.pointerId, slot };
     canvas.setPointerCapture(e.pointerId);
     move(p);
   });
@@ -53,28 +47,31 @@ export function attachDrag(canvas: HTMLCanvasElement, host: DragHost): void {
   });
 
   canvas.addEventListener("pointerup", (e) => {
-    if (active?.pointerId !== e.pointerId || !drag) return;
-    const { board } = layout();
-    const origin = {
-      row: Math.round((drag.y - board.y) / board.cellSize),
-      col: Math.round((drag.x - board.x) / board.cellSize),
-    };
-    const slot = active.slot;
+    if (active?.pointerId !== e.pointerId) return;
+    const released = drag;
     end();
-    host.place(slot, origin);
+    // Same origin the ghost preview showed, so the drop lands exactly there.
+    if (released) host.place(released.slot, released.origin);
   });
 
-  canvas.addEventListener("pointercancel", (e) => {
-    if (active?.pointerId === e.pointerId) end();
-  });
+  for (const type of ["pointercancel", "lostpointercapture"] as const) {
+    canvas.addEventListener(type, (e) => {
+      if (active?.pointerId === e.pointerId) end();
+    });
+  }
 
-  function move(p: { x: number; y: number }): void {
+  function move(p: Point): void {
     if (!active) return;
-    drag = { slot: active.slot, x: p.x - active.dx, y: p.y - active.dy };
+    const entry = host.getState().tray[active.slot];
+    if (!entry) return end();
+    const { board } = layout();
+    const at = liftedTopLeft(p, entry.piece, board.cellSize, board.cellSize * DRAG_LIFT_CELLS);
+    drag = { slot: active.slot, x: at.x, y: at.y, origin: boardOrigin(board, at) };
     host.changed(drag);
   }
 
   function end(): void {
+    if (!active) return;
     active = null;
     drag = null;
     host.changed(null);

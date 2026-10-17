@@ -12,9 +12,9 @@ All of this comes from the core's fit queries. No rules are recomputed in the UI
 
 **Status:** ready-for-agent
 
-- [ ] A Piece picked up from the Tray grows to Board scale and is drawn offset above the touch point
-- [ ] The ghost preview snaps to the Board origin the Piece would land on, and appears only when the Piece fits there
-- [ ] The Lines that would Clear are highlighted while hovering a fitting spot
-- [ ] Tray Pieces that fit nowhere are visibly dimmed, and this updates after every Placement
-- [ ] The core exposes the fit query (fits + which Lines would Clear) and the Tray fit query, with tests for both
+- [x] A Piece picked up from the Tray grows to Board scale and is drawn offset above the touch point
+- [x] The ghost preview snaps to the Board origin the Piece would land on, and appears only when the Piece fits there
+- [x] The Lines that would Clear are highlighted while hovering a fitting spot
+- [x] Tray Pieces that fit nowhere are visibly dimmed, and this updates after every Placement
+- [x] The core exposes the fit query (fits + which Lines would Clear) and the Tray fit query, with tests for both
 - [ ] Playtested on the Android phone: the Piece stays visible above the thumb, and drops land where the ghost showed
