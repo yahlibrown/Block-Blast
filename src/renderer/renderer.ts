@@ -35,9 +35,19 @@ export interface DragView {
   readonly origin: Position;
 }
 
+/** A rejected Piece flying back to its Tray slot: top-left at (x, y), drawn at `cellSize`. */
+export interface SnapBackView {
+  readonly slot: number;
+  readonly x: number;
+  readonly y: number;
+  readonly cellSize: number;
+}
+
 export interface View {
   readonly state: GameState;
   readonly drag: DragView | null;
+  /** A Piece snapping back to the Tray (drawn in flight instead of in its slot). */
+  readonly snapBack?: SnapBackView | null;
   /** Core fit query for the dragged Piece at `drag.origin`: ghost Cells + Lines that would Clear. */
   readonly preview: FitResult | null;
   /** Core Tray fit query: a slot whose Piece fits nowhere is drawn dimmed. */
@@ -162,12 +172,16 @@ export function render(
   ctx.restore();
 
   tray.forEach((entry, slot) => {
-    if (!entry || view.drag?.slot === slot) return;
+    if (!entry || view.drag?.slot === slot || view.snapBack?.slot === slot) return;
     const at = trayPieceOrigin(layout, slot, entry.piece);
     ctx.globalAlpha = view.trayFits[slot] === false ? DIMMED_ALPHA : 1;
     drawPiece(ctx, entry.piece, entry.color, at.x, at.y, layout.trayCellSize, skin);
   });
   ctx.globalAlpha = 1;
+
+  const snap = view.snapBack;
+  const snapping = snap ? tray[snap.slot] : null;
+  if (snap && snapping) drawPiece(ctx, snapping.piece, snapping.color, snap.x, snap.y, snap.cellSize, skin);
 
   if (view.drag && dragged) {
     drawPiece(ctx, dragged.piece, dragged.color, view.drag.x, view.drag.y, layout.board.cellSize, skin);

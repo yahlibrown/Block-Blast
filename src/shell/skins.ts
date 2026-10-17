@@ -4,6 +4,11 @@ import { skinProgress, SKINS, type GameState, type SkinId } from "../core";
 import { skinLook, type SkinLook } from "../renderer/skins";
 import { formatScore } from "./hud";
 
+/** The Skin to draw: the chosen one if it is unlocked, else the first Skin (only unlocked Skins may show). */
+export function activeSkin(unlocked: readonly SkinId[], chosen: SkinId): SkinId {
+  return unlocked.includes(chosen) ? chosen : SKINS[0]!.id;
+}
+
 /** A tiny 2×2 preview of a Skin's Board and blocks. */
 function swatch(look: SkinLook, big = false): HTMLElement {
   const el = document.createElement("span");

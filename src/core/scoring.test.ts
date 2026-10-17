@@ -1,41 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
-  attemptPlacement,
-  clearPoints,
   create,
   restore,
   serialize,
-  type GameState,
-  type SaveData,
 } from "./index";
-
-/** Board from art: `.` empty, a digit = filled with that color. 8 rows of 8. */
-function board(...rows: string[]): (number | null)[][] {
-  return rows.map((row) => [...row].map((ch) => (ch === "." ? null : Number(ch))));
-}
-
-const EMPTY = board(...Array.from({ length: 8 }, () => "........"));
-
-function run(data: Partial<SaveData>): GameState {
-  return restore({ version: 1, board: EMPTY, tray: [null, null, null], ...data });
-}
-
-function place(state: GameState, slot: number, row: number, col: number) {
-  const result = attemptPlacement(state, slot, { row, col });
-  if (!result.ok) throw new Error(`expected Placement to succeed, got ${result.reason}`);
-  return result;
-}
-
-/** Same Run, with a new Tray (so a scenario can keep placing). */
-function withTray(state: GameState, tray: SaveData["tray"]): GameState {
-  return restore({ ...serialize(state), tray });
-}
-
-const DOTS: SaveData["tray"] = [
-  { piece: "dot", color: 0 },
-  { piece: "dot", color: 0 },
-  { piece: "dot", color: 0 },
-];
+import { board, run, DOTS, place, withTray } from "../testing/core";
 
 /** One dot (at row 7, col 7) away from clearing row 7; the stray block stops a Board Clear. */
 const ONE_LINE_READY = board(
@@ -92,12 +61,31 @@ describe("Clear points", () => {
     expect(serialize(result.state).score).toBe(total);
   });
 
-  it("keeps growing faster than the number of Lines beyond 4", () => {
-    for (const lines of [5, 6, 7]) {
-      const step = clearPoints(lines) - clearPoints(lines - 1);
-      const previousStep = clearPoints(lines - 1) - clearPoints(lines - 2);
-      expect(step).toBeGreaterThan(previousStep);
-    }
+  it("keeps growing faster than the number of Lines, past the end of the tuned table", () => {
+    const FULL_BUT_LAST = "1111111.";
+    /** The ×1 Clear from dropping a vertical Piece into column 7, just below the `top` rows, onto full-but-one rows. */
+    const observed = (piece: "v3" | "v4" | "v5", top: string[]) => {
+      const rows = [...top, ...Array.from({ length: 8 - top.length }, () => FULL_BUT_LAST)];
+      const state = run({ board: board(...rows), tray: [{ piece, color: 2 }, null, null] });
+      const cleared = place(state, 0, top.length, 7).events.find((e) => e.type === "linesCleared");
+      if (cleared?.type !== "linesCleared" || cleared.multiplier !== 1) throw new Error("expected a ×1 Clear");
+      return { lines: cleared.lines, points: cleared.points };
+    };
+    const results = [
+      observed("v3", ["1.......", "........", "........", "........", "........"]),
+      observed("v4", ["1.......", "........", "........", "........"]),
+      observed("v5", ["1.......", "........", "........"]),
+      // column 7 completes too
+      observed("v5", ["1......1", ".......1", ".......1"]),
+      // columns 0 and 7 complete too: beyond the 6-entry table
+      observed("v5", ["1......1", "1......1", "1......1"]),
+    ];
+
+    expect(results.map((r) => r.lines)).toEqual([3, 4, 5, 6, 7]);
+    const points = results.map((r) => r.points);
+    expect(points.slice(0, 4)).toEqual([60, 100, 150, 210]);
+    const steps = points.slice(1).map((p, i) => p - points[i]!);
+    for (let i = 1; i < steps.length; i++) expect(steps[i]).toBeGreaterThan(steps[i - 1]!);
   });
 });
 
@@ -221,7 +209,7 @@ describe("the Best Score", () => {
   });
 
   it("is carried into a new Run, which starts at score 0 with no Combo", () => {
-    expect(serialize(create({ seed: 1, best: 70 }))).toMatchObject({
+    expect(serialize(create({ seed: 1, profile: { best: 70 } }))).toMatchObject({
       score: 0,
       best: 70,
       combo: 0,

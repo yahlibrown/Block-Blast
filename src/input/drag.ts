@@ -3,6 +3,7 @@
 import type { GameState, Position } from "../core";
 import { layoutGame, type DragView } from "../renderer/renderer";
 import { boardOrigin, liftedTopLeft, type Point } from "./geometry";
+import type { PieceAt } from "./snapBack";
 
 /** How far the dragged Piece's bottom edge floats above the finger, in Board Cells. */
 const DRAG_LIFT_CELLS = 1.2;
@@ -15,6 +16,8 @@ export interface DragHost {
   place(slot: number, origin: Position): boolean;
   /** Drag view changed; redraw. */
   changed(drag: DragView | null): void;
+  /** The Piece in `slot` didn't land (rejected or cancelled): fly it back from where it was let go. */
+  snapBack(slot: number, from: PieceAt): void;
 }
 
 export function attachDrag(canvas: HTMLCanvasElement, host: DragHost): void {
@@ -51,13 +54,20 @@ export function attachDrag(canvas: HTMLCanvasElement, host: DragHost): void {
     const released = drag;
     end();
     // Same origin the ghost preview showed, so the drop lands exactly there.
-    if (released) host.place(released.slot, released.origin);
+    if (released && !host.place(released.slot, released.origin)) snapBack(released);
   });
 
   for (const type of ["pointercancel", "lostpointercapture"] as const) {
     canvas.addEventListener(type, (e) => {
-      if (active?.pointerId === e.pointerId) end();
+      if (active?.pointerId !== e.pointerId) return;
+      const released = drag;
+      end();
+      if (released) snapBack(released);
     });
+  }
+
+  function snapBack(released: DragView): void {
+    host.snapBack(released.slot, { x: released.x, y: released.y, cellSize: layout().board.cellSize });
   }
 
   function move(p: Point): void {

@@ -1,7 +1,5 @@
-import { describe, expect, it, vi } from "vitest";
-import type * as core from "./index";
+import { describe, expect, it } from "vitest";
 import {
-  attemptPlacement,
   create,
   profileOf,
   restore,
@@ -12,41 +10,7 @@ import {
   type GameState,
   type SaveData,
 } from "./index";
-
-/** Board from art: `.` empty, a digit = filled with that color. 8 rows of 8. */
-function board(...rows: string[]): (number | null)[][] {
-  return rows.map((row) => [...row].map((ch) => (ch === "." ? null : Number(ch))));
-}
-
-const EMPTY = board(...Array.from({ length: 8 }, () => "........"));
-
-/** Isolated holes: only a dot fits, and no dot completes a Line. */
-const HOLES = board(
-  "1.1.1.1.",
-  ".1.1.1.1",
-  "1.1.1.1.",
-  ".1.1.1.1",
-  "1.1.1.1.",
-  ".1.1.1.1",
-  "1.1.1.1.",
-  ".1.1.1.1",
-);
-
-const DOTS: SaveData["tray"] = [
-  { piece: "dot", color: 0 },
-  { piece: "dot", color: 0 },
-  { piece: "dot", color: 0 },
-];
-
-function run(data: Partial<SaveData>): GameState {
-  return restore({ version: 1, board: EMPTY, tray: DOTS, ...data });
-}
-
-function placed(state: GameState, slot: number, row: number, col: number) {
-  const result = attemptPlacement(state, slot, { row, col });
-  if (!result.ok) throw new Error(`expected Placement to succeed, got ${result.reason}`);
-  return result;
-}
+import { board, run, DOTS, HOLES, place, coreWithTuning } from "../testing/core";
 
 /** One dot onto a Board of holes, with a Tray that can't fit anything else: the Run ends. */
 function endRun(state: GameState): { state: GameState; events: readonly GameEvent[] } {
@@ -55,7 +19,7 @@ function endRun(state: GameState): { state: GameState; events: readonly GameEven
     board: HOLES,
     tray: [{ piece: "dot", color: 2 }, { piece: "h2", color: 0 }, null],
   });
-  return placed(ending, 0, 0, 1);
+  return place(ending, 0, 0, 1);
 }
 
 const skinEvents = (events: readonly GameEvent[]) => events.filter((e) => e.type === "skinUnlocked");
@@ -83,7 +47,7 @@ describe("Lifetime Points", () => {
   });
 
   it("are not added before Game Over", () => {
-    const { state } = placed(run({ score: 120, lifetime: 1000 }), 0, 0, 0);
+    const { state } = place(run({ score: 120, lifetime: 1000 }), 0, 0, 0);
 
     expect(state.lifetime).toBe(1000);
   });
@@ -111,7 +75,7 @@ describe("Skin unlocks", () => {
     const target = SECOND!.threshold;
     const state = run({ lifetime: target - 10, score: 9 });
 
-    const result = placed(state, 0, 0, 0); // +1 point reaches it exactly
+    const result = place(state, 0, 0, 0); // +1 point reaches it exactly
 
     expect(skinEvents(result.events)).toEqual([{ type: "skinUnlocked", skin: SECOND!.id }]);
     expect(result.state.unlocked).toEqual([FIRST!.id, SECOND!.id]);
@@ -126,7 +90,7 @@ describe("Skin unlocks", () => {
       tray: [{ piece: "dot", color: 0 }, null, null],
     });
 
-    const types = placed(state, 0, 0, 0).events.map((e) => e.type);
+    const types = place(state, 0, 0, 0).events.map((e) => e.type);
 
     expect(types.slice(0, 4)).toEqual(["piecePlaced", "newBest", "skinUnlocked", "trayDealt"]);
   });
@@ -135,7 +99,7 @@ describe("Skin unlocks", () => {
     let state = run({ lifetime: SECOND!.threshold - 1, score: 0 });
     const fired: GameEvent[] = [];
     for (let i = 0; i < 4; i++) {
-      const result = placed(restore({ ...serialize(state), tray: DOTS }), 0, 0, i);
+      const result = place(restore({ ...serialize(state), tray: DOTS }), 0, 0, i);
       fired.push(...skinEvents(result.events));
       state = result.state;
     }
@@ -148,7 +112,7 @@ describe("Skin unlocks", () => {
     expect(first.unlocked).toContain(SECOND!.id);
 
     const next = create({ seed: 5, profile: profileOf(first) });
-    const result = placed(restore({ ...serialize(next), tray: DOTS }), 0, 0, 0);
+    const result = place(restore({ ...serialize(next), tray: DOTS }), 0, 0, 0);
 
     expect(skinEvents(result.events)).toEqual([]);
   });
@@ -176,7 +140,7 @@ describe("Skin unlocks", () => {
   });
 
   it("at Game Over: the ending Placement can unlock, and the event lists this Run's unlocks", () => {
-    const midRun = placed(run({ lifetime: SECOND!.threshold - 2, score: 0 }), 0, 0, 0).state;
+    const midRun = place(run({ lifetime: SECOND!.threshold - 2, score: 0 }), 0, 0, 0).state;
     expect(midRun.unlocked).not.toContain(SECOND!.id);
 
     const { events } = endRun(midRun); // the ending dot reaches the threshold
@@ -290,15 +254,9 @@ describe("the profile", () => {
 });
 
 /** The core with the Skin thresholds replaced (same Skins, in order). */
-async function coreWithThresholds(values: readonly number[]): Promise<typeof core> {
-  vi.resetModules();
-  vi.doMock("../tuning/tuning", async (importOriginal) => {
-    const actual = await importOriginal<typeof import("../tuning/tuning")>();
-    const ids = Object.keys(actual.TUNING.skins.thresholds);
+const coreWithThresholds = (values: readonly number[]) =>
+  coreWithTuning((t) => {
+    const ids = Object.keys(t.skins.thresholds);
     const thresholds = Object.fromEntries(ids.map((id, i) => [id, values[i]]));
-    return { ...actual, TUNING: { ...actual.TUNING, skins: { ...actual.TUNING.skins, thresholds } } };
+    return { ...t, skins: { ...t.skins, thresholds } };
   });
-  const api = await import("./index");
-  vi.doUnmock("../tuning/tuning");
-  return api;
-}

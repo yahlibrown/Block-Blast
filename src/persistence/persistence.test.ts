@@ -89,7 +89,7 @@ describe("falling back to a fresh Run", () => {
 
     const loaded = createPersistence(storage).loadRun({ seed: SEED });
 
-    expect(serialize(loaded)).toEqual(serialize(create({ seed: SEED, best: 300 })));
+    expect(serialize(loaded)).toEqual(serialize(create({ seed: SEED, profile: { best: 300 } })));
   });
 
   it("starts fresh, keeping the Best Score, when the saved Run is corrupted", () => {
@@ -101,7 +101,7 @@ describe("falling back to a fresh Run", () => {
 
     const loaded = createPersistence(storage).loadRun({ seed: SEED });
 
-    expect(serialize(loaded)).toEqual(serialize(create({ seed: SEED, best: 300 })));
+    expect(serialize(loaded)).toEqual(serialize(create({ seed: SEED, profile: { best: 300 } })));
   });
 
   it("starts fresh when the whole save is from another storage version", () => {

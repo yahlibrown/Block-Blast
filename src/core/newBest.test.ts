@@ -6,25 +6,8 @@ import {
   serialize,
   type GameEvent,
   type GameState,
-  type SaveData,
 } from "./index";
-
-/** Board from art: `.` empty, a digit = filled with that color. 8 rows of 8. */
-function board(...rows: string[]): (number | null)[][] {
-  return rows.map((row) => [...row].map((ch) => (ch === "." ? null : Number(ch))));
-}
-
-const EMPTY = board(...Array.from({ length: 8 }, () => "........"));
-
-const DOTS: SaveData["tray"] = [
-  { piece: "dot", color: 0 },
-  { piece: "dot", color: 0 },
-  { piece: "dot", color: 0 },
-];
-
-function run(data: Partial<SaveData>): GameState {
-  return restore({ version: 1, board: EMPTY, tray: DOTS, ...data });
-}
+import { board, run, DOTS } from "../testing/core";
 
 /** Place one dot per Placement on the first empty Cell (Tray refilled each time); returns each Placement's events. */
 function placeDots(state: GameState, count: number): { state: GameState; events: GameEvent[][] } {
@@ -115,7 +98,7 @@ describe("NEW BEST", () => {
 
   it("measures the next Run against the Best Score it starts with", () => {
     const first = placeDots(run({ score: 5, best: 5 }), 1); // Best Score is now 6
-    const next = create({ seed: 2, best: first.state.best });
+    const next = create({ seed: 2, profile: { best: first.state.best } });
 
     const { events } = placeDots(restore({ ...serialize(next), score: 6 }), 1);
 

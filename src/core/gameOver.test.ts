@@ -1,28 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { attemptPlacement, restore, serialize, trayFits, type SaveData } from "./index";
-
-/** Board from art: `.` empty, a digit = filled with that color. 8 rows of 8. */
-function board(...rows: string[]): (number | null)[][] {
-  return rows.map((row) => [...row].map((ch) => (ch === "." ? null : Number(ch))));
-}
-
-const EMPTY = board(...Array.from({ length: 8 }, () => "........"));
-
-function run(data: Partial<SaveData>): ReturnType<typeof restore> {
-  return restore({ version: 1, board: EMPTY, tray: [null, null, null], ...data });
-}
-
-/** A checkerboard of single holes: nothing but a dot fits, and no dot completes a Line. */
-const HOLES = board(
-  "1.1.1.1.",
-  ".1.1.1.1",
-  "1.1.1.1.",
-  ".1.1.1.1",
-  "1.1.1.1.",
-  ".1.1.1.1",
-  "1.1.1.1.",
-  ".1.1.1.1",
-);
+import { attemptPlacement, serialize, trayFits } from "./index";
+import { run, HOLES } from "../testing/core";
 
 describe("Game Over", () => {
   it("comes when a Placement leaves no remaining Tray Piece that fits", () => {
