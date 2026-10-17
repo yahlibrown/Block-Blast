@@ -30,7 +30,7 @@ const persistence = createPersistence(localStorageOrNull());
 let state: GameState = persistence.loadRun({ seed: Date.now() }); // resumes the saved Run
 let fits = trayFits(state); // recomputed after every Placement
 let drag: DragView | null = null;
-/** A rejected Piece flying back to its Tray slot (`start` is set on its first frame). */
+/** A Piece Returning to its Tray slot (`start` is set on its first frame). */
 let returning: { slot: number; from: PieceAt; start: number | null } | null = null;
 const hud = createHud(document.body, canvas);
 
@@ -137,7 +137,7 @@ let lastNow = 0;
 
 function draw(now: number = lastNow): void {
   lastNow = now;
-  const preview = drag ? queryFit(state, drag.slot, drag.origin) : null;
+  const preview = drag?.origin ? queryFit(state, drag.slot, drag.origin) : null;
   const boardOverlay = effectsOverlay(effects.frame(now), state.board, skin);
   render(ctx!, cssWidth, cssHeight, {
     skin,
@@ -206,7 +206,7 @@ if (state.over) {
 attachDrag(canvas, {
   getState: () => state,
   getSize: () => ({ width: cssWidth, height: cssHeight }),
-  fits: (slot, origin) => queryFit(state, slot, origin).fits,
+  fitsAt: (slot, origin) => queryFit(state, slot, origin).fits,
   place(slot, origin) {
     const result = attemptPlacement(state, slot, origin);
     if (!result.ok) return false; // the drag input Returns the Piece to its Tray slot

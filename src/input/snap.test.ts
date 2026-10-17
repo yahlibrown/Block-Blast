@@ -37,14 +37,31 @@ describe("Snap", () => {
   });
 
   it("stays on the current spot unless another is clearly closer", () => {
-    const fits = fitsAt({ row: 3, col: 3 }, { row: 3, col: 4 });
-    // (3, 4) is 0.1 closer than the current (3, 3): not enough to move.
-    expect(snapOrigin({ row: 3, col: 3.55 }, fits, { row: 3, col: 3 }, tuning)).toEqual({ row: 3, col: 3 });
-    // Now 0.4 closer: move.
-    expect(snapOrigin({ row: 3, col: 3.7 }, fits, { row: 3, col: 3 }, tuning)).toEqual({ row: 3, col: 4 });
+    // Only row 2 fits; the Piece is drawn over row 3, so both spots are Snaps.
+    const fits = fitsAt({ row: 2, col: 3 }, { row: 2, col: 4 });
+    // (2, 4) is ~0.06 closer than the current (2, 3): not enough to move.
+    expect(snapOrigin({ row: 2.6, col: 3.55 }, fits, { row: 2, col: 3 }, tuning)).toEqual({ row: 2, col: 3 });
+    // Now ~0.47 closer: move.
+    expect(snapOrigin({ row: 2.6, col: 3.9 }, fits, { row: 2, col: 3 }, tuning)).toEqual({ row: 2, col: 4 });
   });
 
-  it("lets go of the current spot once it no longer fits or is out of reach", () => {
+  it("always takes the spot where the Piece is drawn when it fits there, however sticky the current one", () => {
+    const fits = fitsAt({ row: 3, col: 3 }, { row: 3, col: 4 });
+    // Drawn at (3, 3.6): (3, 4) fits where drawn, so the current (3, 3) gives way at once.
+    expect(snapOrigin({ row: 3, col: 3.6 }, fits, { row: 3, col: 3 }, tuning)).toEqual({ row: 3, col: 4 });
+  });
+
+  it("breaks a tie for the lower spot, closer to the thumb", () => {
+    const fits = fitsAt({ row: 2, col: 4 }, { row: 4, col: 4 });
+    expect(snapOrigin({ row: 3, col: 4 }, fits, null, tuning)).toEqual({ row: 4, col: 4 });
+  });
+
+  it("keeps the current spot in a tie", () => {
+    const fits = fitsAt({ row: 2, col: 4 }, { row: 4, col: 4 });
+    expect(snapOrigin({ row: 3, col: 4 }, fits, { row: 2, col: 4 }, tuning)).toEqual({ row: 2, col: 4 });
+  });
+
+  it("leaves the current spot once it no longer fits or is out of reach", () => {
     const fits = fitsAt({ row: 3, col: 4 }, { row: 0, col: 0 });
     expect(snapOrigin({ row: 3, col: 3.9 }, fits, { row: 3, col: 3 }, tuning)).toEqual({ row: 3, col: 4 });
     expect(snapOrigin({ row: 3, col: 3.9 }, fits, { row: 0, col: 0 }, tuning)).toEqual({ row: 3, col: 4 });

@@ -31,8 +31,8 @@ export interface DragView {
   readonly slot: number;
   readonly x: number;
   readonly y: number;
-  /** Board origin the Piece would land on if released now (same one the Ghost shows, after any Snap). */
-  readonly origin: Position;
+  /** Board origin the Piece would land on if released now (same one the Ghost shows, after any Snap); null → it would Return. */
+  readonly origin: Position | null;
 }
 
 /** A Piece Returning to its Tray slot: top-left at (x, y), drawn at `cellSize`. */

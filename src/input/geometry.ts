@@ -1,6 +1,5 @@
 // Pure drag geometry: where the dragged Piece is drawn and which Board origin it maps to.
 // No DOM, no rules: the core decides whether the Piece fits at that origin.
-import type { Position } from "../core";
 import type { BoardLayout } from "../renderer/renderer";
 
 export interface Point {
@@ -32,15 +31,15 @@ export function liftedTopLeft(
   return { x: finger.x - width / 2, y: finger.y - height - lift };
 }
 
-/** Unrounded Board position, in Cells, of a Piece whose top-left is drawn at `topLeft`. */
-export function boardPosition(board: BoardLayout, topLeft: Point): { row: number; col: number } {
-  return { row: (topLeft.y - board.y) / board.cellSize, col: (topLeft.x - board.x) / board.cellSize };
+/** A spot on the Board in Cells, not rounded to a Cell (unlike a `Position`). */
+export interface BoardPoint {
+  readonly row: number;
+  readonly col: number;
 }
 
-/** Board origin (top-left Cell) for a Piece whose top-left is drawn at `topLeft`: the nearest Cell. */
-export function boardOrigin(board: BoardLayout, topLeft: Point): Position {
-  const { row, col } = boardPosition(board, topLeft);
-  return { row: Math.round(row), col: Math.round(col) };
+/** Unrounded Board position, in Cells, of a Piece whose top-left is drawn at `topLeft`. */
+export function boardPosition(board: BoardLayout, topLeft: Point): BoardPoint {
+  return { row: (topLeft.y - board.y) / board.cellSize, col: (topLeft.x - board.x) / board.cellSize };
 }
 
 /**
@@ -58,4 +57,12 @@ export function amplifiedTopLeft(anchorAt: Point, anchorFinger: Point, finger: P
 export function clampOnScreen(topLeft: Point, size: Size, screen: Size): Point {
   const clamp = (v: number, max: number) => Math.min(Math.max(v, 0), Math.max(0, max));
   return { x: clamp(topLeft.x, screen.width - size.width), y: clamp(topLeft.y, screen.height - size.height) };
+}
+
+/** Is the middle of a Piece of `size` px, drawn with its top-left at `topLeft`, over the `columns`-wide square Board? */
+export function centerOverBoard(board: BoardLayout, columns: number, topLeft: Point, size: Size): boolean {
+  const side = columns * board.cellSize;
+  const x = topLeft.x + size.width / 2 - board.x;
+  const y = topLeft.y + size.height / 2 - board.y;
+  return x >= 0 && x < side && y >= 0 && y < side;
 }
