@@ -24,6 +24,14 @@ _Avoid_: Hand, queue, rack
 The act of dropping one **Piece** from the **Tray** onto empty **Cells** of the **Board**.
 _Avoid_: Move, drop, turn
 
+**Drag**:
+Carrying a **Piece** from the **Tray** across the **Board** before letting go; letting go where it fits makes a **Placement**, anywhere else sends it back to the **Tray**.
+_Avoid_: Move, swipe, hold
+
+**Ghost**:
+The preview of the **Cells** the dragged **Piece** would fill if let go now, shown only where it fits.
+_Avoid_: Shadow, preview, hint
+
 **Line**:
 A full row or full column of the **Board**.
 

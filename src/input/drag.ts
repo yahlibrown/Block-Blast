@@ -2,11 +2,13 @@
 // Holds no rules: the shell asks the core whether the origin fits and attempts the Placement.
 import type { GameState, Position } from "../core";
 import { layoutGame, type DragView } from "../renderer/renderer";
-import { boardOrigin, liftedTopLeft, type Point } from "./geometry";
+import { amplifiedTopLeft, boardOrigin, clampOnScreen, liftedTopLeft, type Point } from "./geometry";
 import type { PieceAt } from "./snapBack";
 
 /** How far the dragged Piece's bottom edge floats above the finger, in Board Cells. */
 const DRAG_LIFT_CELLS = 1.2;
+/** How many times further than the thumb a touch Drag carries the Piece. Mouse Drags stay 1:1. */
+const DRAG_GAIN = 1.5;
 
 export interface DragHost {
   getState(): GameState;
@@ -21,7 +23,7 @@ export interface DragHost {
 }
 
 export function attachDrag(canvas: HTMLCanvasElement, host: DragHost): void {
-  let active: { pointerId: number; slot: number } | null = null;
+  let active: { pointerId: number; slot: number; grab: Point; gain: number } | null = null;
   let drag: DragView | null = null;
 
   const layout = () => {
@@ -40,7 +42,7 @@ export function attachDrag(canvas: HTMLCanvasElement, host: DragHost): void {
       (s) => p.x >= s.x && p.x < s.x + s.w && p.y >= s.y && p.y < s.y + s.h,
     );
     if (slot < 0 || !host.getState().tray[slot]) return;
-    active = { pointerId: e.pointerId, slot };
+    active = { pointerId: e.pointerId, slot, grab: p, gain: e.pointerType === "mouse" ? 1 : DRAG_GAIN };
     canvas.setPointerCapture(e.pointerId);
     move(p);
   });
@@ -75,7 +77,13 @@ export function attachDrag(canvas: HTMLCanvasElement, host: DragHost): void {
     const entry = host.getState().tray[active.slot];
     if (!entry) return end();
     const { board } = layout();
-    const at = liftedTopLeft(p, entry.piece, board.cellSize, board.cellSize * DRAG_LIFT_CELLS);
+    const { cellSize } = board;
+    const lifted = liftedTopLeft(active.grab, entry.piece, cellSize, cellSize * DRAG_LIFT_CELLS);
+    const at = clampOnScreen(
+      amplifiedTopLeft(lifted, active.grab, p, active.gain),
+      { width: entry.piece.cols * cellSize, height: entry.piece.rows * cellSize },
+      host.getSize(),
+    );
     drag = { slot: active.slot, x: at.x, y: at.y, origin: boardOrigin(board, at) };
     host.changed(drag);
   }
