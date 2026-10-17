@@ -1,5 +1,6 @@
 import type { Piece } from "./pieces";
 import type { RngState } from "./rng";
+import type { SkinId } from "./skins";
 
 /** The Board is always 8×8 (Block Blast Classic). A rule, not a tuning number. */
 export const BOARD_SIZE = 8;
@@ -47,6 +48,15 @@ export interface GameState {
   readonly over: boolean;
   /** Palette Shift level reached this Run (0 at the start of every Run). */
   readonly paletteLevel: number;
+  /**
+   * Lifetime Points banked from finished Runs. This Run's score is added at
+   * Game Over (so once `over`, it is already included).
+   */
+  readonly lifetime: number;
+  /** Unlocked Skins, in catalogue order (always includes the first). */
+  readonly unlocked: readonly SkinId[];
+  /** Skins unlocked during this Run, in unlock order (for the Game Over reveal). */
+  readonly runUnlocked: readonly SkinId[];
 }
 
 export function emptyBoard(): Cell[][] {

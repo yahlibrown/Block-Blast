@@ -53,4 +53,20 @@ describe("text overlay", () => {
 
     expect(overlay.frame(100)).toEqual([]);
   });
+
+  it("pops a New Skin unlocked! banner beside Praise, outlasting it, then clears it", () => {
+    const overlay = createTextOverlay();
+    overlay.play(
+      [
+        { kind: "praise", text: "Good!", tier: 0 },
+        { kind: "skinUnlocked", skin: "neon", text: "New Skin unlocked!" },
+      ],
+      0,
+    );
+
+    expect(roles(overlay.frame(300))).toEqual(["praise:Good!", "skinUnlocked:New Skin unlocked!"]);
+    expect(roles(overlay.frame(1500))).toEqual(["skinUnlocked:New Skin unlocked!"]);
+    expect(overlay.frame(10_000)).toEqual([]);
+    expect(overlay.busy(10_000)).toBe(false);
+  });
 });

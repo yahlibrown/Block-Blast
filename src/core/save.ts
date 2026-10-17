@@ -3,6 +3,7 @@
 // the output of `serialize`.
 import { paletteLevelFor } from "./palette";
 import { isPieceId, PIECES, type PieceId } from "./pieces";
+import { isSkinId, unlockedSkins } from "./skins";
 import {
   BOARD_SIZE,
   COLOR_COUNT,
@@ -47,6 +48,15 @@ export interface SaveData {
   readonly over?: boolean;
   /** Palette Shift level. Defaults to the level the saved score has reached. */
   readonly paletteLevel?: number;
+  /** Lifetime Points banked from finished Runs (includes this Run once `over`). Defaults to 0. */
+  readonly lifetime?: number;
+  /**
+   * Unlocked Skin ids. Unknown ids are ignored. The first Skin and any Skin
+   * that Lifetime Points (plus the score, if not over) reach are always added.
+   */
+  readonly unlocked?: readonly string[];
+  /** Skins unlocked during this Run. Defaults to none. */
+  readonly runUnlocked?: readonly string[];
 }
 
 export class InvalidSaveError extends Error {
@@ -69,6 +79,9 @@ export function serialize(state: GameState): Required<SaveData> {
     dry: state.dry,
     over: state.over,
     paletteLevel: state.paletteLevel,
+    lifetime: state.lifetime,
+    unlocked: [...state.unlocked],
+    runUnlocked: [...state.runUnlocked],
   };
 }
 
@@ -119,7 +132,33 @@ export function restore(data: SaveData): GameState {
   const paletteLevel =
     d.paletteLevel === undefined ? paletteLevelFor(score) : count(d.paletteLevel, "paletteLevel");
 
-  return { board: cells, tray: slots, rng: rng >>> 0, score, best, runStartBest, combo, dry, over, paletteLevel };
+  const lifetime = count(d.lifetime, "lifetime");
+  const points = over ? lifetime : lifetime + score;
+  const unlocked = unlockedSkins(skinList(d.unlocked, "unlocked"), points);
+  const runUnlocked = skinList(d.runUnlocked, "runUnlocked").filter(isSkinId);
+
+  return {
+    board: cells,
+    tray: slots,
+    rng: rng >>> 0,
+    score,
+    best,
+    runStartBest,
+    combo,
+    dry,
+    over,
+    paletteLevel,
+    lifetime,
+    unlocked,
+    runUnlocked,
+  };
+}
+
+/** An optional list of Skin ids (strings); missing means none. */
+function skinList(v: unknown, name: string): readonly string[] {
+  if (v === undefined) return [];
+  if (!Array.isArray(v) || !v.every((id) => typeof id === "string")) fail(`bad ${name}`);
+  return v;
 }
 
 /** An optional non-negative integer field; missing means 0. */

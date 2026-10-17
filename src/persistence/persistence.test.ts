@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { create, restore, serialize, type GameState } from "../core";
+import { create, profileOf, restore, serialize, type GameState } from "../core";
 import { createPersistence, STORAGE_KEY, type StorageLike } from "./persistence";
 
 /** In-memory stand-in for localStorage. */
@@ -139,6 +139,59 @@ describe("falling back to a fresh Run", () => {
       expect(serialize(persistence.loadRun({ seed: SEED }))).toEqual(serialize(create({ seed: SEED })));
       expect(() => persistence.saveRun(midRun())).not.toThrow();
     }
+  });
+});
+
+describe("the profile (Lifetime Points and Skins)", () => {
+  const progressed = () =>
+    restore({ ...serialize(midRun()), lifetime: 6000, unlocked: ["classic", "neon", "gold"] });
+
+  it("survives a reload with the Run", () => {
+    const storage = memoryStorage();
+    createPersistence(storage).saveRun(progressed());
+
+    const loaded = createPersistence(storage).loadRun({ seed: SEED });
+
+    expect(profileOf(loaded)).toEqual({ best: 300, lifetime: 6000, unlocked: ["classic", "neon", "gold"] });
+  });
+
+  it("carries into a fresh Run when the saved Run is unusable", () => {
+    const storage = memoryStorage();
+    createPersistence(storage).saveRun(progressed());
+    const saved = JSON.parse(storage.data[STORAGE_KEY]);
+    saved.run.board = "garbage";
+    storage.data[STORAGE_KEY] = JSON.stringify(saved);
+
+    const loaded = createPersistence(storage).loadRun({ seed: SEED });
+
+    expect(profileOf(loaded)).toEqual({ best: 300, lifetime: 6000, unlocked: ["classic", "neon", "gold"] });
+    expect(loaded.score).toBe(0);
+  });
+
+  it("is never lowered by an older saved Run", () => {
+    const storage = memoryStorage({
+      [STORAGE_KEY]: JSON.stringify({
+        version: 1,
+        run: serialize(midRun()),
+        profile: { best: 50, lifetime: 9000, unlocked: ["candy"] },
+      }),
+    });
+
+    const loaded = createPersistence(storage).loadRun({ seed: SEED });
+
+    expect(profileOf(loaded)).toEqual({ best: 300, lifetime: 9000, unlocked: ["classic", "neon", "candy"] });
+  });
+
+  it("ignores invalid profile fields one by one", () => {
+    const storage = memoryStorage({
+      [STORAGE_KEY]: JSON.stringify({ version: 1, profile: { best: 10, lifetime: -5, unlocked: "all" } }),
+    });
+
+    expect(profileOf(createPersistence(storage).loadRun({ seed: SEED }))).toEqual({
+      best: 10,
+      lifetime: 0,
+      unlocked: ["classic"],
+    });
   });
 });
 
