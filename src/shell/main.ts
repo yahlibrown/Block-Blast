@@ -6,6 +6,11 @@ import { render, type DragView } from "../renderer/renderer";
 import { createGameOverScreen } from "./gameOver";
 import { createFrameLoop } from "./loop";
 import { createPersistence } from "../persistence/persistence";
+import { loadSettings, saveSettings, type Settings } from "../persistence/settings";
+import { createAudio } from "../audio/audio";
+import { createHaptics } from "../haptics/haptics";
+import { sensoryCues } from "../feedback/sensory";
+import { createSettingsSheet } from "./settingsSheet";
 import "./style.css";
 
 const canvas = document.querySelector<HTMLCanvasElement>("#game");
@@ -21,6 +26,29 @@ const hud = createHud(document.body, canvas);
 
 const gameOver = createGameOverScreen(document.body, playAgain);
 const gameOverStats = createScoreStats(gameOver.stats);
+
+// Sound, haptics and their settings (ticket 11).
+const audio = createAudio();
+const haptics = createHaptics(navigator);
+let settings: Settings = loadSettings(persistence);
+function applySettings(next: Settings): void {
+  settings = next;
+  audio.enabled = settings.sound;
+  haptics.enabled = settings.haptics;
+}
+function changeSettings(change: Partial<Settings>): void {
+  applySettings({ ...settings, ...change });
+  saveSettings(persistence, settings);
+}
+applySettings(settings);
+const settingsSheet = createSettingsSheet(document.body);
+settingsSheet.addToggle("Sound", settings.sound, (sound) => {
+  changeSettings({ sound });
+  if (sound) audio.unlock(); // the toggle tap is a user gesture
+});
+settingsSheet.addToggle("Vibration", settings.haptics, (haptics) => changeSettings({ haptics }));
+// Browsers only start audio from a user gesture: (re)unlock on every touch.
+document.addEventListener("pointerdown", () => audio.unlock(), { capture: true });
 
 /** Start a fresh Run: empty Board, new Tray, Best Score carried over. */
 function playAgain(): void {
@@ -85,6 +113,10 @@ attachDrag(canvas, {
     const result = attemptPlacement(state, slot, origin);
     if (!result.ok) return false; // snaps back: the Piece stays in its Tray slot
     setState(result.state);
+    // Standalone sound/vibration mapping; ticket 09's feedback director should absorb it.
+    const cues = sensoryCues(result.events);
+    audio.play(cues.sounds);
+    if (cues.vibration) haptics.vibrate(cues.vibration);
     if (result.events.some((e) => e.type === "gameOver")) {
       gameOverStats.update(state);
       gameOver.show();

@@ -182,3 +182,136 @@ body {
 .score-stats__row--best {
   color: #ffd166;
 }
+
+/* Settings (ticket 11): gear in the HUD band's top-left, bottom sheet over the game. */
+.settings-gear {
+  position: fixed;
+  top: calc(env(safe-area-inset-top, 0px) + 12px);
+  left: 12px;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.8);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.settings-gear:active {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.settings {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgba(10, 14, 30, 0.6);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  color: #fff;
+  animation: game-over-in 200ms ease-out;
+}
+
+.settings[hidden] {
+  display: none;
+}
+
+.settings__panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: min(100%, 480px);
+  padding: 24px 24px calc(env(safe-area-inset-bottom, 0px) + 24px);
+  border-radius: 20px 20px 0 0;
+  background: #26315a;
+  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.4);
+  animation: settings-up 220ms ease-out;
+}
+
+.settings__title {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 800;
+}
+
+.settings__content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.settings__toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 56px;
+  padding: 0 16px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.06);
+  font-size: 1.15rem;
+  font-weight: 600;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+/* Switch drawn on the checkbox itself. */
+.settings__toggle input {
+  appearance: none;
+  -webkit-appearance: none;
+  position: relative;
+  flex: 0 0 auto;
+  width: 52px;
+  height: 32px;
+  margin: 0;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.25);
+  cursor: pointer;
+  transition: background 150ms;
+}
+
+.settings__toggle input::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform 150ms;
+}
+
+.settings__toggle input:checked {
+  background: #3ecf6e;
+}
+
+.settings__toggle input:checked::after {
+  transform: translateX(20px);
+}
+
+.settings__done {
+  min-height: 56px;
+  border: 0;
+  border-radius: 16px;
+  background: #ffb020;
+  color: #1b2440;
+  font: inherit;
+  font-size: 1.25rem;
+  font-weight: 800;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+@keyframes settings-up {
+  from {
+    transform: translateY(100%);
+  }
+}
