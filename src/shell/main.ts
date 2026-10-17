@@ -2,6 +2,7 @@
 import { attemptPlacement, create, type GameState } from "../core";
 import { attachDrag } from "../input/drag";
 import { render, type DragView } from "../renderer/renderer";
+import { createGameOverScreen } from "./gameOver";
 import "./style.css";
 
 const canvas = document.querySelector<HTMLCanvasElement>("#game");
@@ -11,6 +12,16 @@ if (!ctx) throw new Error("Canvas 2D not supported");
 
 let state: GameState = create({ seed: Date.now() });
 let drag: DragView | null = null;
+
+const gameOver = createGameOverScreen(document.body, playAgain);
+
+/** Start a fresh Run: empty Board, new Tray. */
+function playAgain(): void {
+  state = create({ seed: Date.now() });
+  drag = null;
+  gameOver.hide();
+  draw();
+}
 
 let cssWidth = 0;
 let cssHeight = 0;
@@ -42,6 +53,7 @@ attachDrag(canvas, {
     if (!result.ok) return false; // snaps back: the Piece stays in its Tray slot
     state = result.state;
     draw();
+    if (result.events.some((e) => e.type === "gameOver")) gameOver.show();
     return true;
   },
   changed(next) {

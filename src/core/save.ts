@@ -32,6 +32,8 @@ export interface SaveData {
   readonly tray: readonly (SavedTrayPiece | null)[];
   /** Random source state. Defaults to 0. */
   readonly rng?: number;
+  /** Game Over reached. Defaults to false. */
+  readonly over?: boolean;
 }
 
 export class InvalidSaveError extends Error {
@@ -47,6 +49,7 @@ export function serialize(state: GameState): Required<SaveData> {
     board: state.board.map((row) => [...row]),
     tray: state.tray.map((t) => (t ? { piece: t.piece.id, color: t.color } : null)),
     rng: state.rng,
+    over: state.over,
   };
 }
 
@@ -84,7 +87,10 @@ export function restore(data: SaveData): GameState {
   const rng = d.rng ?? 0;
   if (typeof rng !== "number" || !Number.isInteger(rng)) fail("bad rng");
 
-  return { board: cells, tray: slots, rng: rng >>> 0 };
+  const over = d.over ?? false;
+  if (typeof over !== "boolean") fail("bad over");
+
+  return { board: cells, tray: slots, rng: rng >>> 0, over };
 }
 
 function isColor(v: unknown): v is number {
