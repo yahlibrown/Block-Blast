@@ -1,6 +1,6 @@
 // Shell: wires the core to the Canvas. Owns the DOM and the frame loop.
 import { attemptPlacement, create, queryFit, trayFits, type GameState } from "../core";
-import { directFeedback } from "../feedback/director";
+import { directFeedback, type FeedbackCue } from "../feedback/director";
 import { createTextOverlay } from "../feedback/overlay";
 import { attachDrag } from "../input/drag";
 import { createHud, createScoreStats } from "./hud";
@@ -11,6 +11,10 @@ import { createBackdropTransition } from "./backdrop";
 import { createClearEffects } from "../renderer/effects/clearEffects";
 import { effectsOverlay } from "../renderer/effects/drawEffects";
 import { createPersistence } from "../persistence/persistence";
+import { loadSettings, saveSettings, type Settings } from "../persistence/settings";
+import { createAudio, type Sound } from "../audio/audio";
+import { createHaptics } from "../haptics/haptics";
+import { createSettingsSheet } from "./settingsSheet";
 import "./style.css";
 
 const canvas = document.querySelector<HTMLCanvasElement>("#game");
@@ -28,6 +32,39 @@ const overlay = createTextOverlay();
 
 const gameOver = createGameOverScreen(document.body, playAgain);
 const gameOverStats = createScoreStats(gameOver.stats);
+
+// Sound, haptics and their settings (ticket 11).
+const audio = createAudio();
+const haptics = createHaptics(navigator);
+let settings: Settings = loadSettings(persistence);
+function applySettings(next: Settings): void {
+  settings = next;
+  audio.enabled = settings.sound;
+  haptics.enabled = settings.haptics;
+}
+function changeSettings(change: Partial<Settings>): void {
+  applySettings({ ...settings, ...change });
+  saveSettings(persistence, settings);
+}
+applySettings(settings);
+const settingsSheet = createSettingsSheet(document.body);
+settingsSheet.addToggle("Sound", settings.sound, (sound) => {
+  changeSettings({ sound });
+  if (sound) audio.unlock(); // the toggle tap is a user gesture
+});
+settingsSheet.addToggle("Vibration", settings.haptics, (haptics) => changeSettings({ haptics }));
+// Browsers only start audio from a user gesture: (re)unlock on every touch.
+document.addEventListener("pointerdown", () => audio.unlock(), { capture: true });
+
+/** The director's sound and haptic cues go to `audio` / `haptics` (they check the settings). */
+function playSensoryCues(cues: readonly FeedbackCue[]): void {
+  const sounds: Sound[] = [];
+  for (const cue of cues) {
+    if (cue.kind === "sound") sounds.push(cue.sound);
+    else if (cue.kind === "haptic") haptics.vibrate(cue.pattern);
+  }
+  audio.play(sounds);
+}
 
 /** Start a fresh Run: empty Board, new Tray, Best Score carried over. */
 function playAgain(): void {
@@ -117,11 +154,13 @@ attachDrag(canvas, {
     // State changes at once; effects only draw on top, so the next Piece can be dragged right away.
     // performance.now() shares the rAF timestamp's time base.
     const now = performance.now();
+    const cues = directFeedback(result.events);
+    playSensoryCues(cues);
     effects.onPlacement(result.events, now);
     loop.animate((t) => effects.active(t));
     hud.update(state, now);
     loop.animate((t) => hud.tick(t));
-    overlay.play(directFeedback(result.events), now);
+    overlay.play(cues, now);
     if (overlay.busy(now)) loop.animate((t) => overlay.busy(t));
     if (result.events.some((e) => e.type === "gameOver")) {
       gameOverStats.update(state);
