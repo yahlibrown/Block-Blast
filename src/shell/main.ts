@@ -5,6 +5,7 @@ import { createHud, createScoreStats } from "./hud";
 import { render, type DragView } from "../renderer/renderer";
 import { createGameOverScreen } from "./gameOver";
 import { createFrameLoop } from "./loop";
+import { createBackdropTransition } from "./backdrop";
 import "./style.css";
 
 const canvas = document.querySelector<HTMLCanvasElement>("#game");
@@ -43,16 +44,29 @@ function resize(): void {
 
 function draw(): void {
   const preview = drag ? queryFit(state, drag.slot, drag.origin) : null;
-  render(ctx!, cssWidth, cssHeight, { state, drag, preview, trayFits: fits });
+  render(ctx!, cssWidth, cssHeight, {
+    state,
+    drag,
+    preview,
+    trayFits: fits,
+    backdrop: backdrop.current(),
+  });
 }
 
 /** All redraws go through this loop; animations register with `loop.animate`. */
 const loop = createFrameLoop(draw, (cb) => requestAnimationFrame(cb));
 
+/** Palette Shift colors: blends to the Run's level; the page behind the HUD follows the canvas. */
+const backdrop = createBackdropTransition(loop, (b) => {
+  document.body.style.background = b.background;
+});
+backdrop.setLevel(state.paletteLevel, true);
+
 function setState(next: GameState): void {
   state = next;
   fits = trayFits(state);
   hud.update(state);
+  backdrop.setLevel(state.paletteLevel); // smooth Palette Shift (and back to level 0 on a new Run)
   loop.invalidate();
 }
 
