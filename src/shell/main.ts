@@ -1,6 +1,7 @@
 // Shell: wires the core to the Canvas. Owns the DOM and the frame loop.
 import { attemptPlacement, create, type GameState } from "../core";
 import { attachDrag } from "../input/drag";
+import { createHud } from "./hud";
 import { render, type DragView } from "../renderer/renderer";
 import "./style.css";
 
@@ -11,6 +12,7 @@ if (!ctx) throw new Error("Canvas 2D not supported");
 
 let state: GameState = create({ seed: Date.now() });
 let drag: DragView | null = null;
+const hud = createHud(document.body, canvas);
 
 let cssWidth = 0;
 let cssHeight = 0;
@@ -28,6 +30,7 @@ function resize(): void {
 
 function draw(): void {
   render(ctx!, cssWidth, cssHeight, { state, drag });
+  hud.update(state);
 }
 
 new ResizeObserver(resize).observe(canvas);

@@ -32,6 +32,14 @@ export interface SaveData {
   readonly tray: readonly (SavedTrayPiece | null)[];
   /** Random source state. Defaults to 0. */
   readonly rng?: number;
+  /** Score in this Run. Defaults to 0. */
+  readonly score?: number;
+  /** Best Score. Defaults to 0. */
+  readonly best?: number;
+  /** Combo level. Defaults to 0. */
+  readonly combo?: number;
+  /** Placements in a row without a Clear. Defaults to 0. */
+  readonly dry?: number;
 }
 
 export class InvalidSaveError extends Error {
@@ -47,6 +55,10 @@ export function serialize(state: GameState): Required<SaveData> {
     board: state.board.map((row) => [...row]),
     tray: state.tray.map((t) => (t ? { piece: t.piece.id, color: t.color } : null)),
     rng: state.rng,
+    score: state.score,
+    best: state.best,
+    combo: state.combo,
+    dry: state.dry,
   };
 }
 
@@ -84,7 +96,19 @@ export function restore(data: SaveData): GameState {
   const rng = d.rng ?? 0;
   if (typeof rng !== "number" || !Number.isInteger(rng)) fail("bad rng");
 
-  return { board: cells, tray: slots, rng: rng >>> 0 };
+  const score = count(d.score, "score");
+  const best = Math.max(count(d.best, "best"), score);
+  const combo = count(d.combo, "combo");
+  const dry = count(d.dry, "dry");
+
+  return { board: cells, tray: slots, rng: rng >>> 0, score, best, combo, dry };
+}
+
+/** An optional non-negative integer field; missing means 0. */
+function count(v: unknown, name: string): number {
+  if (v === undefined) return 0;
+  if (typeof v !== "number" || !Number.isInteger(v) || v < 0) fail(`bad ${name}`);
+  return v;
 }
 
 function isColor(v: unknown): v is number {

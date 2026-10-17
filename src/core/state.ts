@@ -30,6 +30,14 @@ export interface GameState {
   readonly tray: Tray;
   /** Seeded random source state; advanced by dealing. */
   readonly rng: RngState;
+  /** Points earned in this Run. */
+  readonly score: number;
+  /** Best Score: the highest score reached in any Run (kept up to date mid-Run). */
+  readonly best: number;
+  /** Combo level: +1 per Placement that Clears; 0 = no streak. */
+  readonly combo: number;
+  /** Placements in a row without a Clear (reset by a Clear). */
+  readonly dry: number;
 }
 
 export function emptyBoard(): Cell[][] {

@@ -15,6 +15,7 @@ export {
   type TrayPiece,
 } from "./state";
 export { PIECES, PIECE_IDS, type Piece, type PieceId, type Position } from "./pieces";
+export { clearPoints } from "./scoring";
 export {
   attemptPlacement,
   queryFit,
@@ -37,11 +38,13 @@ export {
 export interface CreateOptions {
   /** Seed for the core's random source (drives dealing). */
   readonly seed: number;
+  /** Best Score carried in from earlier Runs. Defaults to 0. (Ticket 13 may fold this into a profile.) */
+  readonly best?: number;
 }
 
 /** Start a new Run: empty Board and a freshly dealt Tray. */
 export function create(options: CreateOptions): GameState {
   const board = emptyBoard();
   const [tray, rng] = dealTray(board, seedRng(options.seed));
-  return { board, tray, rng };
+  return { board, tray, rng, score: 0, best: options.best ?? 0, combo: 0, dry: 0 };
 }

@@ -1,6 +1,7 @@
 // Placement, Clear and the fit queries.
 import { dealTray } from "./dealer";
 import type { Piece, PieceId, Position } from "./pieces";
+import { BOARD_CLEAR_BONUS, blockPoints, clearPoints, stepCombo } from "./scoring";
 import { BOARD_SIZE, type Board, type GameState, type Tray } from "./state";
 
 /** Why a Placement was refused. Later tickets add reasons (e.g. "game-over"). */
@@ -25,6 +26,8 @@ export type GameEvent =
       /** Board Cells the Piece now fills. */
       readonly cells: readonly Position[];
       readonly blocks: number;
+      /** Block points scored by this Placement. */
+      readonly points: number;
     }
   | {
       readonly type: "linesCleared";
@@ -35,6 +38,27 @@ export type GameEvent =
       readonly lines: number;
       /** Every Cell emptied, with the color it had (each Cell once). */
       readonly cells: readonly ColoredPosition[];
+      /** Combo level this Clear was multiplied by (after this Clear's increment). */
+      readonly multiplier: number;
+      /** Clear points scored: the Multi-Clear size's points × multiplier. */
+      readonly points: number;
+    }
+  | {
+      /** A Clear grew the Combo. */
+      readonly type: "comboIncreased";
+      /** New Combo level (1 on the first Clear of a streak). */
+      readonly level: number;
+    }
+  | {
+      /** The third Placement in a row without a Clear reset the Combo to 0. */
+      readonly type: "comboBroken";
+      /** The Combo level that was lost. */
+      readonly level: number;
+    }
+  | {
+      /** A Clear left the Board fully empty. */
+      readonly type: "boardClear";
+      readonly bonus: number;
     }
   | {
       readonly type: "trayDealt";
@@ -92,9 +116,13 @@ export function attemptPlacement(
     origin: { row: origin.row, col: origin.col },
     cells: fit.cells,
     blocks: fit.cells.length,
+    points: blockPoints(fit.cells.length),
   });
+  let score = state.score + blockPoints(fit.cells.length);
 
-  if (fit.rows.length + fit.cols.length > 0) {
+  const lines = fit.rows.length + fit.cols.length;
+  const combo = stepCombo(state.combo, state.dry, lines > 0);
+  if (lines > 0) {
     const cleared: ColoredPosition[] = [];
     for (let row = 0; row < BOARD_SIZE; row++) {
       for (let col = 0; col < BOARD_SIZE; col++) {
@@ -108,10 +136,21 @@ export function attemptPlacement(
       type: "linesCleared",
       rows: fit.rows,
       cols: fit.cols,
-      lines: fit.rows.length + fit.cols.length,
+      lines,
       cells: cleared,
+      multiplier: combo.combo,
+      points: clearPoints(lines) * combo.combo,
     });
+    score += clearPoints(lines) * combo.combo;
+    events.push({ type: "comboIncreased", level: combo.combo });
+    if (board.every((row) => row.every((cell) => cell === null))) {
+      events.push({ type: "boardClear", bonus: BOARD_CLEAR_BONUS });
+      score += BOARD_CLEAR_BONUS;
+    }
+  } else if (combo.broke !== null) {
+    events.push({ type: "comboBroken", level: combo.broke });
   }
+  // (Ticket 09) newBest, (12) paletteShift, (13) skinUnlocked slot in here, before trayDealt.
 
   let tray: Tray = state.tray.map((t, i) => (i === slot ? null : t));
   let rng = state.rng;
@@ -120,7 +159,16 @@ export function attemptPlacement(
     events.push({ type: "trayDealt", tray });
   }
 
-  return { ok: true, state: { ...state, board, tray, rng }, events };
+  return { ok: true, state: {
+      ...state,
+      board,
+      tray,
+      rng,
+      score,
+      best: Math.max(state.best, score),
+      combo: combo.combo,
+      dry: combo.dry,
+    }, events };
 }
 
 function fitPiece(board: Board, piece: Piece, origin: Position): FitResult {

@@ -55,6 +55,7 @@ describe("a valid Placement", () => {
           { row: 0, col: 7 },
         ],
         blocks: 2,
+        points: 2,
       },
     ]);
   });
@@ -144,7 +145,7 @@ describe("Clearing Lines", () => {
         "2.......",
       ),
     );
-    expect(result.events.map((e) => e.type)).toEqual(["piecePlaced", "linesCleared"]);
+    expect(result.events.map((e) => e.type)).toEqual(["piecePlaced", "linesCleared", "comboIncreased"]);
     expect(result.events[1]).toMatchObject({ type: "linesCleared", rows: [6], cols: [], lines: 1 });
   });
 
@@ -249,6 +250,8 @@ describe("dealing a new Tray", () => {
     expect(result.events.map((e) => e.type)).toEqual([
       "piecePlaced",
       "linesCleared",
+      "comboIncreased",
+      "boardClear",
       "trayDealt",
     ]);
   });
