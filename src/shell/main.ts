@@ -1,4 +1,5 @@
 // Shell: wires the core to the Canvas. Owns the DOM and the frame loop.
+import "./errorLogPanel"; // first, so it catches startup errors too (only with ?debug)
 import { attemptPlacement, create, profileOf, queryFit, trayFits, type GameState, type SkinId } from "../core";
 import { skinLook } from "../renderer/skins";
 import { activeSkin, createSkinPicker, createSkinStats } from "./skins";
@@ -10,7 +11,7 @@ import { attachDrag } from "../input/drag";
 import { cancelsTouch } from "../input/touchGuard";
 import { returnAt, type PieceAt } from "../input/returnFlight";
 import { createHud, createScoreStats } from "./hud";
-import { layoutGame, render, trayPieceOrigin, type DragView, type ReturnView } from "../renderer/renderer";
+import { layoutGame, NO_INSETS, render, trayPieceOrigin, type DragView, type Insets, type ReturnView } from "../renderer/renderer";
 import { createGameOverScreen } from "./gameOver";
 import { createFrameLoop } from "./loop";
 import { createBackdropTransition } from "./backdrop";
@@ -21,6 +22,7 @@ import { loadSettings, saveSettings, type Settings } from "../persistence/settin
 import { createAudio } from "../audio/audio";
 import { createHaptics } from "../haptics/haptics";
 import { createSettingsSheet } from "./settingsSheet";
+import { trackViewport } from "./viewport";
 import { settingToggles } from "./settingToggles";
 import { readDeviceFacts } from "./device";
 import { createHomeScreenHint } from "../persistence/homeScreenHint";
@@ -147,6 +149,8 @@ function playAgain(): void {
 
 let cssWidth = 0;
 let cssHeight = 0;
+/** Safe-area insets: the layout keeps the Board and Tray clear of them (and of the top band). */
+let insets: Insets = NO_INSETS;
 
 /** Match the backing store to CSS size × devicePixelRatio for crisp high-DPI drawing. */
 function resize(): void {
@@ -175,6 +179,7 @@ function draw(now: number = lastNow): void {
     backdrop: backdrop.current(),
     boardOverlay,
     texts: overlay.frame(now),
+    insets,
   });
   hud.comboTag(comboTag.frame(now));
 }
@@ -184,7 +189,7 @@ function returnView(now: number): ReturnView | null {
   const entry = returning && state.tray[returning.slot];
   if (!returning || !entry) return null;
   returning.start ??= now;
-  const layout = layoutGame(cssWidth, cssHeight, state.board.length);
+  const layout = layoutGame(cssWidth, cssHeight, state.board.length, insets);
   const home = { ...trayPieceOrigin(layout, returning.slot, entry.piece), cellSize: layout.trayCellSize };
   const at = returnAt(returning.from, home, now - returning.start);
   return at && { slot: returning.slot, ...at };
@@ -222,8 +227,11 @@ function localStorageOrNull(): Storage | null {
 }
 
 new ResizeObserver(resize).observe(canvas);
-window.addEventListener("resize", resize);
-resize();
+// The page follows the visible viewport (Safari's toolbars), and the layout the safe-area insets.
+trackViewport((measured) => {
+  insets = measured;
+  resize();
+});
 hud.reset(state);
 if (state.over) {
   // The restored Run had already ended: show its Game Over screen.
@@ -232,7 +240,7 @@ if (state.over) {
 
 attachDrag(canvas, {
   getState: () => state,
-  getSize: () => ({ width: cssWidth, height: cssHeight }),
+  getSize: () => ({ width: cssWidth, height: cssHeight, insets }),
   fitsAt: (slot, origin) => queryFit(state, slot, origin).fits,
   place(slot, origin) {
     const result = attemptPlacement(state, slot, origin);
