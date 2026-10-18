@@ -9,14 +9,14 @@ The effects must run smoothly on the Android phone.
 
 **Blocked by:** 05 (Scoring, Combo and Board Clear)
 
-**Status:** ready-for-human
+**Status:** resolved
 
 - [x] Cleared Lines flash before their Cells empty
 - [x] Each cleared block emits particles in its color
 - [x] The shake intensity scales with Multi-Clear size and Combo level; the scaling is tunable
 - [x] A Board Clear triggers a distinct, bigger celebration
 - [x] Effects never delay input: the next Piece can be dragged while effects play
-- [ ] Playtested on the Android phone: no visible frame drops during a large Multi-Clear
+- [x] Playtested on the Android phone: no visible frame drops during a large Multi-Clear
 
 ## Comments
 
@@ -27,3 +27,4 @@ The effects must run smoothly on the Android phone.
 - 2026-10-17 (orchestrator): Implemented and merged into integration branch `block-blast` (review fixes merged at a75ddde). Only the human checks above remain (on the Android phone / GitHub setup); set Status to resolved once verified.
 
 - 2026-10-18 (human): Not verified yet: the human has not reached a Board Clear on the phone yet.
+- 2026-10-18 (human): Large Multi-Clears run smoothly on the phone. Resolved. A Board Clear has not been seen on the phone yet.
