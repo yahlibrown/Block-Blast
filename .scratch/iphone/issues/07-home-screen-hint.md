@@ -14,13 +14,17 @@ See the spec: Play on iPhone.
 
 **Status:** ready-for-agent
 
-- [ ] Rule tests with the in-memory fake storage cover:
+- [x] Rule tests with the in-memory fake storage cover:
   - hidden after the first Game Over, shown from the second;
   - hidden after dismissal, including across a reload;
   - never shown for an iPhone Home Screen app, Android or desktop
-- [ ] Hint writes keep the Run, profile and settings sections intact
-- [ ] "Play again" stays visible, focused and one tap away with the card showing
-- [ ] The storage request runs at startup and never throws or blocks play
+- [x] Hint writes keep the Run, profile and settings sections intact
+- [x] "Play again" stays visible, focused and one tap away with the card showing
+- [x] The storage request runs at startup and never throws or blocks play
 - [ ] Checked on the iPhone in a Safari tab: no card after the first Game Over, the card after the second, gone for good after dismissing. Checked as a Home Screen app: never shown
 
 ## Comments
+
+- Built in `iphone-07`. Rule: `src/persistence/homeScreenHint.ts` (its own `homeScreenHint` section: `gameOvers`, `dismissed`), tested through Persistence with in-memory storage and the real device facts. Storage request: `src/persistence/persistentStorage.ts`, called at startup in `main.ts`; tested for no-throw, swallowed rejection and not waiting.
+- Card: `src/shell/homeScreenHintCard.ts`, in a new `below` container under "Play again" on the Game Over screen, so it can't cover or push down the button. `show()` still focuses "Play again", and dismissing gives it focus back. The repo has no DOM test environment, so that part is by construction and needs the playtest.
+- Only a Run ending during play counts as a Game Over. Reloading onto an already-ended Run shows its Game Over screen without counting it again.

@@ -88,7 +88,7 @@ The app icons in `public/` are generated from `public/icon.svg`. After editing t
 - `src/audio/`: generated Web Audio sounds.
 - `src/haptics/`: the Vibration API wrapper.
 - `src/device/`: device facts (can it vibrate, is it an iPhone in a Safari tab, is the screen upright), worked out from browser globals passed in by the shell.
-- `src/persistence/`: localStorage save and resume, profile and settings.
+- `src/persistence/`: localStorage save and resume, profile, settings, the Home Screen Hint rule, and the startup request to keep saved data.
 - `src/debug/`: the opt-in error log (`?debug`) for playtests on a phone.
 - `src/shell/`: the entry point, page and screens (HUD, Game Over, settings, Skin picker), and the frame loop. It wires everything together.
 - `src/testing/`: shared helpers for core tests (they use only the core's public interface).

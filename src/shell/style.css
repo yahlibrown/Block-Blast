@@ -565,6 +565,66 @@ body {
   overscroll-behavior: contain;
 }
 
+/* Home Screen Hint (iPhone ticket 07): a small card under "Play again", never over it. */
+.game-over__below {
+  display: contents;
+}
+
+.home-hint {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  width: 100%;
+  margin-top: -8px;
+  padding: 12px 8px 12px 14px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.08);
+  text-align: left;
+  font-size: 0.9rem;
+  line-height: 1.35;
+}
+
+.home-hint[hidden] {
+  display: none;
+}
+
+.home-hint__text {
+  flex: 1;
+}
+
+.home-hint__title {
+  margin: 0 0 4px;
+  font-weight: 700;
+}
+
+.home-hint__steps {
+  margin: 0;
+  opacity: 0.8;
+}
+
+.home-hint__share {
+  width: 1.1em;
+  height: 1.1em;
+  vertical-align: -0.2em;
+  color: #4da3ff;
+}
+
+.home-hint__dismiss {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  margin: -6px 0 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 1.4rem;
+  line-height: 1;
+  opacity: 0.7;
+  cursor: pointer;
+  touch-action: manipulation;
+
 /* Error log (?debug only): uncaught errors over the game; never blocks input. */
 .error-log {
   position: fixed;
