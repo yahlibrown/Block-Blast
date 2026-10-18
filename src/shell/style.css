@@ -588,10 +588,15 @@ body {
 
 .home-hint__steps {
   margin: 0;
-  opacity: 0.8;
+  padding-left: 1.4em;
+  opacity: 0.85;
 }
 
-.home-hint__share {
+.home-hint__steps li + li {
+  margin-top: 2px;
+}
+
+.home-hint__icon {
   width: 1.1em;
   height: 1.1em;
   vertical-align: -0.2em;
@@ -638,12 +643,32 @@ body {
   display: none;
 }
 
-/* A phone outline, drawn upright: the way to hold it. */
+/* A phone outline that starts sideways (how the player holds it) and turns upright (iPhone ticket 11):
+   0.3s sideways, a 0.6s turn, then a 1.5s hold upright, on a loop. */
 .upright__phone {
   width: 36px;
   height: 64px;
   border: 4px solid #ffb020;
   border-radius: 9px;
+  animation: upright-turn 2.4s ease-in-out infinite;
+}
+
+@keyframes upright-turn {
+  0%,
+  12.5% {
+    transform: rotate(-90deg);
+  }
+  37.5%,
+  100% {
+    transform: rotate(0deg);
+  }
+}
+
+/* Reduce Motion: the phone stays still, drawn upright. */
+@media (prefers-reduced-motion: reduce) {
+  .upright__phone {
+    animation: none;
+  }
 }
 
 .upright__title {

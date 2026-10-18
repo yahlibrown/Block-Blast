@@ -85,6 +85,41 @@ describe("Game layout across target screens", () => {
     }
   });
 
+  describe("spare height on tall screens (iPhone ticket 10)", () => {
+    /** Gaps (CSS px) above the Board, between Board and Tray, and below the Tray, inside the play space. */
+    const gaps = (width: number, height: number, insets: Insets) => {
+      const layout = layoutGame(width, height, COLUMNS, insets);
+      const boardBottom = layout.board.y + layout.board.cellSize * COLUMNS;
+      const tray = layout.traySlots[0]!;
+      return {
+        above: layout.board.y - (insets.top + TOP_BAND_HEIGHT),
+        between: tray.y - boardBottom,
+        below: height - insets.bottom - (tray.y + tray.h),
+      };
+    };
+
+    it("leaves only a small margin below the Tray, not an empty band", () => {
+      // iPhone 16 and Pro Max Home Screen apps: the Board is width-bound, so height is spare.
+      for (const [w, h, insets] of [
+        [393, 852, { ...NONE, top: 59, bottom: 34 }],
+        [440, 956, { ...NONE, top: 62, bottom: 34 }],
+      ] as const) {
+        const { above, between, below } = gaps(w, h, insets);
+        expect(below).toBeLessThanOrEqual(w * 0.05);
+        // The Tray moves down toward the thumb: more room goes between than above.
+        expect(between).toBeGreaterThan(above);
+        // The Board still sits a little below the top band, not glued to it.
+        expect(above).toBeGreaterThan(0);
+      }
+    });
+
+    it("keeps short screens as tight as before", () => {
+      // iPhone SE Safari tab with toolbars: height-bound, no spare to share out.
+      const { above, below } = gaps(375, 548, NONE);
+      expect(Math.abs(above - below)).toBeLessThan(1);
+    });
+  });
+
   it("defaults to no safe-area insets", () => {
     expect(layoutGame(393, 659, COLUMNS)).toEqual(layoutGame(393, 659, COLUMNS, NONE));
   });

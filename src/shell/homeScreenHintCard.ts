@@ -2,7 +2,9 @@
 // tells iPhone players in a Safari tab how to add the game to their Home Screen.
 // Whether it shows is the Home Screen Hint rule's call (persistence/homeScreenHint).
 // The copy never promises that progress carries over: iOS keeps the Home Screen
-// app's data apart from Safari's.
+// app's data apart from Safari's. The steps come from device/homeScreenSteps.
+
+import type { HomeScreenStep, StepIcon } from "../device/homeScreenSteps";
 
 export interface HomeScreenHintCard {
   /** Show or hide the card (call before showing the Game Over screen). */
@@ -11,7 +13,11 @@ export interface HomeScreenHintCard {
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 
-export function createHomeScreenHintCard(parent: HTMLElement, onDismiss: () => void): HomeScreenHintCard {
+export function createHomeScreenHintCard(
+  parent: HTMLElement,
+  stepList: readonly HomeScreenStep[],
+  onDismiss: () => void,
+): HomeScreenHintCard {
   const card = document.createElement("aside");
   card.className = "home-hint";
   card.hidden = true;
@@ -24,12 +30,16 @@ export function createHomeScreenHintCard(parent: HTMLElement, onDismiss: () => v
   title.className = "home-hint__title";
   title.textContent = "Add to Home Screen to keep your Best";
 
-  const steps = document.createElement("p");
+  const steps = document.createElement("ol");
   steps.className = "home-hint__steps";
-  steps.append("Tap ", shareIcon(), " Share, then ");
-  const step = document.createElement("strong");
-  step.textContent = "Add to Home Screen";
-  steps.append(step, ".");
+  for (const step of stepList) {
+    const item = document.createElement("li");
+    if (step.icon) item.append(stepIcon(step.icon), " ");
+    const label = document.createElement(step.icon === "add" ? "strong" : "span");
+    label.textContent = step.label;
+    item.append(label);
+    steps.append(item);
+  }
 
   text.append(title, steps);
 
@@ -53,14 +63,20 @@ export function createHomeScreenHintCard(parent: HTMLElement, onDismiss: () => v
   };
 }
 
-/** iOS's Share glyph: a box with an arrow pointing up out of it. */
-function shareIcon(): SVGSVGElement {
+/** Each step's glyph, drawn like Safari's: ••• in a circle, Share (a box with an arrow out of it), and a plus in a square. */
+const ICON_PATHS: Record<StepIcon, string> = {
+  more: "M12 3a9 9 0 1 0 0 18a9 9 0 1 0 0-18M7.5 12h.01M12 12h.01M16.5 12h.01",
+  share: "M12 3v12M8 7l4-4 4 4M8 10H6v11h12V10h-2",
+  add: "M6 3h12a3 3 0 0 1 3 3v12a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V6a3 3 0 0 1 3-3M12 8v8M8 12h8",
+};
+
+function stepIcon(icon: StepIcon): SVGSVGElement {
   const svg = document.createElementNS(SVG_NS, "svg");
-  svg.setAttribute("class", "home-hint__share");
+  svg.setAttribute("class", "home-hint__icon");
   svg.setAttribute("viewBox", "0 0 24 24");
   svg.setAttribute("aria-hidden", "true");
   const path = document.createElementNS(SVG_NS, "path");
-  path.setAttribute("d", "M12 3v12M8 7l4-4 4 4M8 10H6v11h12V10h-2");
+  path.setAttribute("d", ICON_PATHS[icon]);
   path.setAttribute("fill", "none");
   path.setAttribute("stroke", "currentColor");
   path.setAttribute("stroke-width", "2");

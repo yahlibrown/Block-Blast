@@ -28,6 +28,7 @@ import { readDeviceFacts } from "./device";
 import { createHomeScreenHint } from "../persistence/homeScreenHint";
 import { requestPersistentStorage } from "../persistence/persistentStorage";
 import { createHomeScreenHintCard } from "./homeScreenHintCard";
+import { homeScreenSteps } from "../device/homeScreenSteps";
 import { createUprightScreen } from "./uprightScreen";
 import "./style.css";
 
@@ -73,7 +74,7 @@ applySettings(settings);
 const device = readDeviceFacts();
 // Home Screen Hint (iPhone ticket 07): under "Play again" on the Game Over screen, which keeps focus.
 const homeScreenHint = createHomeScreenHint(persistence, device);
-const hintCard = createHomeScreenHintCard(gameOver.below, () => {
+const hintCard = createHomeScreenHintCard(gameOver.below, homeScreenSteps(navigator.userAgent), () => {
   homeScreenHint.dismiss();
   gameOver.focusPlayAgain();
 });
