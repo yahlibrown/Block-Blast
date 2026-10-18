@@ -1,6 +1,6 @@
 # Spec: Play on iPhone
 
-Status: ready-for-agent
+Status: implemented (awaiting phone playtest)
 
 ## Problem Statement
 

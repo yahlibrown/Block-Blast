@@ -10,7 +10,7 @@ See the spec: Play on iPhone.
 
 **Blocked by:** 02 (Device facts)
 
-**Status:** ready-for-agent
+**Status:** implemented (awaiting phone playtest, ticket 08)
 
 - [x] Sideways shows the overlay; upright hides it
 - [x] A Drag in progress when the phone turns ends in a Return, never a Placement

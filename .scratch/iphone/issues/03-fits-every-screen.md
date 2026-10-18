@@ -15,7 +15,7 @@ See the spec: Play on iPhone.
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** implemented (awaiting phone playtest, ticket 08)
 
 - [x] New layout tests cover:
   - iPhone SE in a Safari tab (about 375×550);

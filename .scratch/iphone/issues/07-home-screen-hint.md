@@ -12,7 +12,7 @@ See the spec: Play on iPhone.
 
 **Blocked by:** 02 (Device facts)
 
-**Status:** ready-for-agent
+**Status:** implemented (awaiting phone playtest, ticket 08)
 
 - [x] Rule tests with the in-memory fake storage cover:
   - hidden after the first Game Over, shown from the second;

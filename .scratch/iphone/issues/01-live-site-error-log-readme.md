@@ -10,7 +10,7 @@ See the spec: Play on iPhone.
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** implemented (awaiting phone playtest, ticket 08)
 
 - [ ] The live site matches local `main`, and the deploy run is green
 - [x] With the debug flag, a thrown error and an unhandled rejection both show up on screen; without it, nothing is shown

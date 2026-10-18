@@ -13,7 +13,7 @@ See the spec: Play on iPhone.
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** implemented (awaiting phone playtest, ticket 08)
 
 - [x] Table-driven tests with fake inputs cover:
   - an iPhone in a Safari tab;

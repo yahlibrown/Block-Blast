@@ -11,7 +11,7 @@ See the spec: Play on iPhone.
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** implemented (awaiting phone playtest, ticket 08)
 
 - [x] With the silent switch off, the first Placement plays its sound, and Clears and Combos sound as on Android
 - [x] With the silent switch on, the game is silent
