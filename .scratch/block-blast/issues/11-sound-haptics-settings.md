@@ -7,7 +7,7 @@
 
 **Blocked by:** 05 (Scoring, Combo and Board Clear), 08 (Save and resume)
 
-**Status:** ready-for-human
+**Status:** resolved
 
 - [x] The landing "thunk" plays on every Placement
 - [x] A Clear sound plays, and the Combo chime rises in pitch with each Combo step
@@ -16,7 +16,7 @@
 - [x] Haptics do nothing, without errors, where vibration is unsupported
 - [x] A gear icon opens a settings sheet with sound and haptics toggles; toggles take effect immediately
 - [x] Settings survive reloads and fall back to defaults (both on) if the saved data is invalid
-- [ ] Playtested on the Android phone: sound and vibration both work and can each be turned off
+- [x] Playtested on the Android phone: sound and vibration both work and can each be turned off
 
 ## Comments
 
@@ -29,3 +29,5 @@ For the human to verify on the Android phone (and once on desktop):
 - The gear (top-left of the score band) opens the sheet. Turning Sound or Vibration off silences it right away, and the choice survives a reload.
 
 - 2026-10-17 (orchestrator): Implemented and merged into integration branch `block-blast` (review fixes merged at a75ddde). Only the human checks above remain (on the Android phone / GitHub setup); set Status to resolved once verified.
+
+- 2026-10-18 (human): Verified on the phone. Resolved.

@@ -4,7 +4,7 @@
 
 **Blocked by:** 01 (Empty Board on screen)
 
-**Status:** ready-for-human
+**Status:** resolved
 
 Note: creating the GitHub repo and logging in needs the human once. Guide them through it (e.g. with a short step-by-step wizard) instead of doing it for them.
 
@@ -15,7 +15,7 @@ Note: creating the GitHub repo and logging in needs the human once. Guide them t
 - [x] A GitHub Actions workflow runs the tests, builds, and publishes to GitHub Pages on push to main; failing tests block the deploy
 - [x] The build works under the GitHub Pages sub-path (correct base path)
 - [x] The README documents the one-time setup and how to install on the phone
-- [ ] Verified on the player's Android phone: installs to the home screen, opens full-screen, and works in airplane mode
+- [x] Verified on the player's Android phone: installs to the home screen, opens full-screen, and works in airplane mode
 
 ## Comments
 
@@ -28,3 +28,5 @@ The human must still:
 - Offline and update behaviour were only checked by inspecting the build output (generated `sw.js`, manifest, registration), not on a real device or in CI. The workflow has not run yet.
 
 - 2026-10-17 (orchestrator): Implemented and merged into integration branch `block-blast` (review fixes merged at a75ddde). Only the human checks above remain (on the Android phone / GitHub setup); set Status to resolved once verified.
+
+- 2026-10-18 (human): Verified on the phone. Resolved.

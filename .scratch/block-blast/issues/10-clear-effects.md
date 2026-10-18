@@ -25,3 +25,5 @@ The effects must run smoothly on the Android phone.
 - **Human must verify:** playtest on the Android phone that a large Multi-Clear and a Board Clear show no visible frame drops (particle count is capped by `EFFECTS.particles.max`; lower it or `perBlock` if needed), and that the shake strength feels right.
 
 - 2026-10-17 (orchestrator): Implemented and merged into integration branch `block-blast` (review fixes merged at a75ddde). Only the human checks above remain (on the Android phone / GitHub setup); set Status to resolved once verified.
+
+- 2026-10-18 (human): Not verified yet: the human has not reached a Board Clear on the phone yet.

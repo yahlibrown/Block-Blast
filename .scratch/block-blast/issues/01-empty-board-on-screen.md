@@ -4,12 +4,12 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-human
+**Status:** resolved
 
 - [x] Running the dev script serves the app with live reload on desktop
 - [x] The dev server can be reached from a phone on the same Wi-Fi (exposed on the LAN), and the README says how
 - [x] An empty 8×8 Board is drawn on a Canvas, centered and filling the width of a portrait phone screen, crisp on high-DPI displays
-- [ ] The page has no scrolling, no zoom on double-tap, and no pull-to-refresh while playing
+- [x] The page has no scrolling, no zoom on double-tap, and no pull-to-refresh while playing
 - [x] The test script runs Vitest, with at least one passing test against the game core
 - [x] The game core has no DOM, timer, audio or storage access
 - [x] A short README explains how to run, test and open the game on a phone
@@ -22,3 +22,5 @@
   - If the phone can't connect, allow Node.js through Windows Firewall on private networks.
 
 - 2026-10-17 (orchestrator): Implemented and merged into integration branch `block-blast` (review fixes merged at a75ddde). Only the human checks above remain (on the Android phone / GitHub setup); set Status to resolved once verified.
+
+- 2026-10-18 (human): Verified on the phone. Resolved.

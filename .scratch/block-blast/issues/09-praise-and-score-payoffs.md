@@ -8,7 +8,7 @@
 
 **Blocked by:** 05 (Scoring, Combo and Board Clear)
 
-**Status:** ready-for-human
+**Status:** resolved
 
 - [x] The core emits a NEW BEST event exactly once per Run, at the first Placement that pushes the score past the Best Score held at the start of the Run (none if the Best Score was 0)
 - [x] Praise text escalates with Multi-Clear size and Combo level; the mapping is in one table
@@ -16,7 +16,7 @@
 - [x] The "COMBO ×N" display shows on Combo increases and clears or fades when the Combo breaks
 - [x] The score counts up smoothly to the new value
 - [x] Core tests cover NEW BEST firing once, not firing below the Best Score, and not firing on a first-ever Run with Best Score 0
-- [ ] Playtested on the phone: the messages feel rewarding, not cluttered
+- [x] Playtested on the phone: the messages feel rewarding, not cluttered
 
 ## Comments
 
@@ -24,3 +24,5 @@
 - **Human to verify (phone playtest):** the messages feel rewarding, not cluttered — Praise size/colors per tier, COMBO ×N placement (shown from ×2, below the Praise), NEW BEST! burst, count-up speed. Tune `PRAISE` in `src/feedback/praise.ts`, timings in `src/feedback/overlay.ts`, sizes/positions in `drawOverlayText` (`src/renderer/renderer.ts`).
 
 - 2026-10-17 (orchestrator): Implemented and merged into integration branch `block-blast` (review fixes merged at a75ddde). Only the human checks above remain (on the Android phone / GitHub setup); set Status to resolved once verified.
+
+- 2026-10-18 (human): Verified on the phone. Resolved.
