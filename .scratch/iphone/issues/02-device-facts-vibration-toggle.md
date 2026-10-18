@@ -15,7 +15,7 @@ See the spec: Play on iPhone.
 
 **Status:** ready-for-agent
 
-- [ ] Table-driven tests with fake inputs cover:
+- [x] Table-driven tests with fake inputs cover:
   - an iPhone in a Safari tab;
   - an iPhone Home Screen app;
   - an iPhone in a non-Safari browser;
@@ -23,8 +23,10 @@ See the spec: Play on iPhone.
   - desktop;
   - vibration present and absent;
   - upright and sideways sizes
-- [ ] The vibration toggle is absent where vibration is unsupported and present where it is
-- [ ] A saved haptics setting is preserved whether or not the toggle is shown
+- [x] The vibration toggle is absent where vibration is unsupported and present where it is
+- [x] A saved haptics setting is preserved whether or not the toggle is shown
 - [ ] Checked on the iPhone: there's no vibration toggle in settings. Checked on Android: the toggle is there and vibration still works
 
 ## Comments
+
+- Built on `iphone-02`. Pure module `src/device/deviceFacts.ts`: `deviceFacts({ navigator, standalone, width, height })` returns `{ vibrationSupported, iPhoneSafariTab, upright }`, and there's also `isUpright(width, height)`. iPhones are recognised by `iPhone`/`iPod` in the user agent (so Chrome and Firefox on iOS count too), or by a Mac user agent with a touch screen (Safari's "Request Desktop Website"). The browser adapter `src/shell/device.ts` (`readDeviceInputs()` / `readDeviceFacts()`) reads `navigator`, standalone mode (`navigator.standalone` or `display-mode: standalone`) and the visual viewport size. `src/shell/settingToggles.ts` decides which toggles the settings sheet shows. Vibration is left out where it's unsupported, and the saved `haptics` value is never written by hiding it. Still to do: the phone checks.

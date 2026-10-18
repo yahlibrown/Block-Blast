@@ -1,8 +1,10 @@
 // Audio: every sound is synthesized with the Web Audio API (no asset files).
 //
 // Browsers only let audio start from a user gesture, so the AudioContext is
-// created (or resumed) by `unlock()`, which the shell calls on every
-// pointerdown. Sounds requested before that are dropped silently. While
+// created (or resumed) by `unlock()`, which the shell calls on every touch.
+// Sounds requested before that are dropped silently. When the browser stops
+// the context (the app was backgrounded, the phone locked, a call came in),
+// the next `unlock()` resumes it, or replaces it if it was closed. While
 // `enabled` is false (the sound setting), `play` does nothing.
 
 /** The game's sounds. `chime` carries its pitch (rising per Combo step). */
@@ -25,10 +27,30 @@ const MASTER_GAIN = 0.8;
 /** Delay before the Combo chime, so it rings just after the Clear's whoosh starts. */
 const CHIME_DELAY_S = 0.06;
 
-export function createAudio(createContext: () => AudioContext | null = defaultContext): Audio {
+/** The iOS Audio Session API (`navigator.audioSession`, Safari 17+). */
+export interface AudioSession {
+  type: string;
+}
+
+/**
+ * `session` is the page's audio session where the browser has one. It is set to
+ * "ambient": game sounds obey the iPhone's silent switch and mix with the player's
+ * music, like a normal casual game (never a "playback" session that ignores the switch).
+ */
+export function createAudio(
+  createContext: () => AudioContext | null = defaultContext,
+  session: AudioSession | null | undefined = defaultSession(),
+): Audio {
+  try {
+    if (session) session.type = "ambient";
+  } catch {
+    // An unsupported session type: keep the browser's default.
+  }
   let ctx: AudioContext | null = null;
   let master: GainNode | null = null;
   let noise: AudioBuffer | null = null;
+  /** A resume asked for from a gesture and not yet settled: sounds scheduled now play once it does. */
+  let resuming = false;
 
   function setUp(context: AudioContext): void {
     const compressor = context.createDynamicsCompressor();
@@ -39,29 +61,38 @@ export function createAudio(createContext: () => AudioContext | null = defaultCo
     noise = context.createBuffer(1, Math.floor(context.sampleRate * 0.6), context.sampleRate);
     const data = noise.getChannelData(0);
     for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
-    // Some mobile browsers only unlock once something plays inside the gesture.
+  }
+
+  /** Resume a stopped context from a gesture. iOS only unlocks once something plays inside it. */
+  function wake(context: AudioContext): void {
     const silent = context.createBufferSource();
     silent.buffer = context.createBuffer(1, 1, context.sampleRate);
     silent.connect(context.destination);
     silent.start();
+    resuming = true;
+    const settled = () => {
+      if (ctx === context) resuming = false;
+    };
+    void context.resume().then(settled, settled);
   }
 
   return {
     enabled: true,
     unlock() {
       try {
-        if (!ctx) {
+        if (!ctx || ctx.state === "closed") {
+          resuming = false;
           ctx = createContext();
           if (!ctx) return;
           setUp(ctx);
         }
-        if (ctx.state !== "running") void ctx.resume().catch(() => {});
+        if (ctx.state !== "running" && !resuming) wake(ctx);
       } catch {
         // No Web Audio: the game stays silent.
       }
     },
     play(sounds) {
-      if (!this.enabled || !ctx || !master || !noise || ctx.state !== "running") return;
+      if (!this.enabled || !ctx || !master || !noise || (ctx.state !== "running" && !resuming)) return;
       const t = ctx.currentTime;
       try {
         for (const sound of sounds) {
@@ -85,6 +116,10 @@ export function createAudio(createContext: () => AudioContext | null = defaultCo
       }
     },
   };
+}
+
+function defaultSession(): AudioSession | undefined {
+  return (globalThis.navigator as unknown as { audioSession?: AudioSession } | undefined)?.audioSession;
 }
 
 function defaultContext(): AudioContext | null {

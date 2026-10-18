@@ -7,6 +7,7 @@ import { createTextOverlay } from "../feedback/overlay";
 import { createComboTag } from "../feedback/comboTag";
 import { createSensoryPlayer } from "../feedback/sensoryPlayer";
 import { attachDrag } from "../input/drag";
+import { cancelsTouch } from "../input/touchGuard";
 import { returnAt, type PieceAt } from "../input/returnFlight";
 import { createHud, createScoreStats } from "./hud";
 import { layoutGame, NO_INSETS, render, trayPieceOrigin, type DragView, type Insets, type ReturnView } from "../renderer/renderer";
@@ -21,6 +22,8 @@ import { createAudio } from "../audio/audio";
 import { createHaptics } from "../haptics/haptics";
 import { createSettingsSheet } from "./settingsSheet";
 import { trackViewport } from "./viewport";
+import { settingToggles } from "./settingToggles";
+import { readDeviceFacts } from "./device";
 import "./style.css";
 
 const canvas = document.querySelector<HTMLCanvasElement>("#game");
@@ -60,20 +63,27 @@ function changeSettings(change: Partial<Settings>): void {
   saveSettings(persistence, settings);
 }
 applySettings(settings);
+const device = readDeviceFacts();
 const settingsSheet = createSettingsSheet(document.body);
-settingsSheet.addToggle("Sound", settings.sound, (sound) => {
-  changeSettings({ sound });
-  if (sound) audio.unlock(); // the toggle tap is a user gesture
-});
-settingsSheet.addToggle("Vibration", settings.haptics, (haptics) => changeSettings({ haptics }));
+// Vibration is offered only where the device can vibrate; its saved setting is kept either way.
+for (const toggle of settingToggles(device)) {
+  settingsSheet.addToggle(toggle.label, settings[toggle.key], (value) => {
+    changeSettings({ [toggle.key]: value });
+    if (toggle.key === "sound" && value) audio.unlock(); // the toggle tap is a user gesture
+  });
+}
 // Browsers only start audio from a user gesture: (re)unlock on every touch while sound is on.
-document.addEventListener(
-  "pointerdown",
-  () => {
-    if (settings.sound) audio.unlock();
-  },
-  { capture: true },
-);
+// iOS only counts a touch's end as a gesture, so unlock on pointerup/touchend too; capture
+// runs it before the drop's Placement, so the first Placement already has its sound.
+for (const type of ["pointerdown", "pointerup", "touchend"]) {
+  document.addEventListener(
+    type,
+    () => {
+      if (settings.sound) audio.unlock();
+    },
+    { capture: true },
+  );
+}
 
 // Skins (ticket 13): the chosen Skin is a setting; only unlocked Skins can be shown.
 const shownSkin = (): SkinId => activeSkin(state.unlocked, settings.skin);
@@ -254,14 +264,25 @@ attachDrag(canvas, {
   },
 });
 
-// Block browser gestures the CSS can't fully stop (iOS-style pinch, double-tap zoom).
-for (const type of ["gesturestart", "dblclick"] as const) {
+// Block browser gestures the CSS can't fully stop on iOS Safari: pinch, double-tap zoom, the long-press callout,
+// and (via the touch guard) edge swipe-back, toolbar pull-up and page bounce.
+for (const type of ["gesturestart", "dblclick", "contextmenu"] as const) {
   document.addEventListener(type, (e) => e.preventDefault(), { passive: false });
 }
-document.addEventListener(
-  "touchmove",
-  (e) => {
-    if (e.touches.length > 1) e.preventDefault();
-  },
-  { passive: false },
-);
+for (const phase of ["start", "move"] as const) {
+  document.addEventListener(
+    `touch${phase}`,
+    (e) => {
+      // A touch event's target stays the element the touch began on, even as the finger moves away.
+      const target = e.target instanceof Element ? e.target : null;
+      const cancel = cancelsTouch({
+        phase,
+        fingers: e.touches.length,
+        onPlayArea: target === canvas,
+        inScrollable: !!target?.closest(".settings__panel, .game-over__panel"),
+      });
+      if (cancel && e.cancelable) e.preventDefault();
+    },
+    { passive: false },
+  );
+}
