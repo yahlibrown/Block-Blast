@@ -10,7 +10,7 @@
 
 **Blocked by:** 09 (Praise and score payoffs)
 
-**Status:** ready-for-human
+**Status:** resolved
 
 - [x] No Combo text is drawn over the Board except the Combo Pop, which fades on the Praise's timeline
 - [x] The Combo Pop sits just under the Praise and moves and fades with it
@@ -19,10 +19,11 @@
 - [x] On resume, the Tag shows the saved level with no bump or Pop; on a new Run, it is hidden
 - [x] Overlay tests cover: the Pop expiring with the Praise, and no Combo frame persisting after that
 - [x] Code names match the glossary (Combo Pop, Combo Tag)
-- [ ] Playtested on the phone: the Board is never covered for longer than the Praise
+- [x] Playtested on the phone: the Board is never covered for longer than the Praise
 
 ## Comments
 
 - 2026-10-18 (grilling): The human reported that the Combo display "is in the middle of the screen and hiding the board. It never fades away or moves." Cause: `src/feedback/overlay.ts` holds the combo frame at alpha 1 until `comboEnd`, and `src/renderer/renderer.ts` pins it at 66% of the Board's height. Decisions Q1–Q10: brief Pop with the Praise, a Tag off the Board, a calm fade on break, no at-risk indicator, glossary terms Combo Pop and Combo Tag.
 - 2026-10-18 (implement): Built on `block-blast`. The Combo Pop is attached to its Praise in `src/feedback/overlay.ts`, so it shares the Praise's frame. The Combo Tag is a pure model in `src/feedback/comboTag.ts` (tested), drawn by the HUD (`src/shell/hud.ts`, `.hud-combo` in `style.css`). The renderer's `comboPop` row is 0.59, just under the Praise at 0.45. Review: no hard issues. The renames to `comboPop` / `comboLevel` and the spec.md wording are applied.
 - Human to verify on the phone: with a 6-digit score, the Tag may crowd or overlap Best (it sits 8px right of the centered score); a top-tier Praise and the Combo Pop may touch during the pop-in overshoot; and a resumed Run that already ended shows the Tag behind the Game Over screen. Tune `.hud-combo` and `TEXT_ROW.comboPop` if needed.
+- 2026-10-18 (human): Passed the phone playtest. Resolved.
