@@ -16,26 +16,37 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 
-body {
-  position: fixed;
-  inset: 0;
-  /* Score HUD band on top, the canvas takes the rest. */
-  display: flex;
-  flex-direction: column;
+/* The page is exactly the visible viewport: `--app-height` follows Safari's toolbars (viewport.ts). */
+html {
+  height: var(--app-height, 100dvh);
 }
 
+body {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--app-height, 100dvh);
+}
+
+/* The canvas fills the page; the layout keeps the Board and Tray below the top band and inside the safe area. */
 #game {
+  position: absolute;
+  inset: 0;
   display: block;
-  width: 100vw;
-  flex: 1 1 auto;
-  min-height: 0;
+  width: 100%;
+  height: 100%;
   touch-action: none;
 }
 
 /* Score HUD (ticket 05): current score centered and large, Best Score at the right. */
+/* The top band: drawn over the canvas, 72px below the top inset (TOP_BAND_HEIGHT in renderer.ts). */
 #hud {
-  position: relative;
-  flex: 0 0 auto;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1;
   height: 72px;
   padding-top: env(safe-area-inset-top, 0px);
   color: #ffffff;
@@ -81,7 +92,7 @@ body {
 
 #hud .hud-best {
   position: absolute;
-  right: 16px;
+  right: calc(env(safe-area-inset-right, 0px) + 16px);
   bottom: 8px;
   display: flex;
   flex-direction: column;
@@ -105,11 +116,17 @@ body {
 /* Game Over overlay: sits over the Board and blocks drags while shown. */
 .game-over {
   position: fixed;
-  inset: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 2; /* over the top band */
+  height: var(--app-height, 100dvh);
+  box-sizing: border-box;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 16px;
+  padding: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px))
+    max(16px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px));
   background: rgba(10, 14, 30, 0.72);
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   color: #fff;
@@ -206,7 +223,7 @@ body {
 .settings-gear {
   position: fixed;
   top: calc(env(safe-area-inset-top, 0px) + 12px);
-  left: 12px;
+  left: calc(env(safe-area-inset-left, 0px) + 12px);
   z-index: 5;
   display: flex;
   align-items: center;
@@ -228,7 +245,10 @@ body {
 
 .settings {
   position: fixed;
-  inset: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--app-height, 100dvh);
   z-index: 10;
   display: flex;
   align-items: flex-end;
@@ -336,11 +356,20 @@ body {
 }
 
 /* Skins (ticket 13). Panels may outgrow short screens: let them scroll vertically. */
+/* Both fit the visible viewport (a Safari tab's toolbars included) and stay clear of the notch. */
 .settings__panel,
 .game-over__panel {
-  max-height: calc(100dvh - 32px);
+  box-sizing: border-box;
   overflow-y: auto;
   touch-action: pan-y;
+}
+
+.game-over__panel {
+  max-height: 100%;
+}
+
+.settings__panel {
+  max-height: calc(var(--app-height, 100dvh) - env(safe-area-inset-top, 0px) - 16px);
 }
 
 /* A 2×2 preview of a Skin's Board and blocks; the corner radius hints at the block style. */
@@ -536,11 +565,12 @@ body {
   overscroll-behavior: contain;
 }
 
-/* "Turn your phone upright" screen (iPhone ticket 05): covers everything, settings and Game Over included. */
+/* "Turn your phone upright" screen (iPhone ticket 05): covers everything, settings and Game Over included
+   (only the ?debug error log stays above it). */
 .upright {
   position: fixed;
   inset: 0;
-  z-index: 100;
+  z-index: 90;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -571,4 +601,29 @@ body {
   font-size: 1.5rem;
   font-weight: 800;
   text-align: center;
+}
+
+/* Error log (?debug only): uncaught errors over the game; never blocks input. */
+.error-log {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 100;
+  max-height: 40%;
+  margin: 0;
+  padding: 8px 8px calc(env(safe-area-inset-bottom, 0px) + 8px);
+  overflow: hidden;
+  background: rgba(60, 0, 0, 0.85);
+  color: #ffd6d6;
+  font: 11px/1.35 ui-monospace, Menlo, Consolas, monospace;
+  white-space: pre-wrap;
+  word-break: break-word;
+  pointer-events: none;
+}
+
+.error-log > div + div {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
 }

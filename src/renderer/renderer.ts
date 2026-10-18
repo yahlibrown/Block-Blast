@@ -60,6 +60,8 @@ export interface View {
   readonly texts?: readonly OverlayText[];
   /** The chosen Skin: Board, Cell and block look. Defaults to the first Skin. */
   readonly skin?: SkinLook;
+  /** Safe-area insets the layout keeps clear of. Defaults to none. */
+  readonly insets?: Insets;
 }
 
 export interface BoardOverlay {
@@ -97,16 +99,35 @@ const GLOW_RIM_ALPHA = 0.8;
 const TRAY_SCALE = 0.55;
 const MAX_PIECE_CELLS = 5;
 
-/** Board centered horizontally in the upper part, Tray of three below it. */
-export function layoutGame(width: number, height: number, columns: number): GameLayout {
-  const margin = Math.round(width * 0.04);
+/** Safe-area insets (notch, Dynamic Island, Home indicator), in CSS pixels. */
+export interface Insets {
+  readonly top: number;
+  readonly right: number;
+  readonly bottom: number;
+  readonly left: number;
+}
+
+export const NO_INSETS: Insets = { top: 0, right: 0, bottom: 0, left: 0 };
+
+/** Height of the top band (Score, Combo Tag, Best Score, settings button) below the top inset. Matches `#hud` in style.css. */
+export const TOP_BAND_HEIGHT = 72;
+
+/**
+ * Board centered across the screen, Tray of three below it, both in the space left
+ * after the top band and the safe-area insets (`width`×`height` is the whole visible viewport).
+ */
+export function layoutGame(width: number, height: number, columns: number, insets: Insets = NO_INSETS): GameLayout {
+  const top = insets.top + TOP_BAND_HEIGHT;
+  const playWidth = width - insets.left - insets.right;
+  const playHeight = height - top - insets.bottom;
+  const margin = Math.round(playWidth * 0.04);
   const traySideRatio = (MAX_PIECE_CELLS * TRAY_SCALE) / columns + 0.1;
-  const side = Math.min(width - margin * 2, (height - margin * 3) / (1 + traySideRatio));
+  const side = Math.max(0, Math.min(playWidth - margin * 2, (playHeight - margin * 3) / (1 + traySideRatio)));
   const cellSize = side / columns;
   const trayHeight = side * traySideRatio;
   const totalHeight = side + margin + trayHeight;
-  const x = (width - side) / 2;
-  const y = (height - totalHeight) / 2;
+  const x = insets.left + (playWidth - side) / 2;
+  const y = top + (playHeight - totalHeight) / 2;
   const trayY = y + side + margin;
   const slotW = side / 3;
   return {
@@ -131,7 +152,7 @@ export function render(
   const { board, tray } = view.state;
   const columns = board[0]?.length ?? 0;
   if (columns === 0) return;
-  const layout = layoutGame(width, height, columns);
+  const layout = layoutGame(width, height, columns, view.insets);
   const dragged = view.drag ? (tray[view.drag.slot] ?? null) : null;
   const preview = dragged && view.preview?.fits ? view.preview : null;
 

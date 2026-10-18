@@ -13,9 +13,11 @@ See the spec: Play on iPhone.
 **Status:** ready-for-agent
 
 - [ ] The live site matches local `main`, and the deploy run is green
-- [ ] With the debug flag, a thrown error and an unhandled rejection both show up on screen; without it, nothing is shown
-- [ ] The README has a "Play on iPhone" section that can be pasted into a text message as-is
+- [x] With the debug flag, a thrown error and an unhandled rejection both show up on screen; without it, nothing is shown
+- [x] The README has a "Play on iPhone" section that can be pasted into a text message as-is
 - [ ] The Apple touch icon loads from the deployed site, and Add to Home Screen shows the right icon and the name "Block Blast"
 - [ ] Checked on the iPhone: the live site loads in Safari and the debug flag shows the log
 
 ## Comments
+
+- Agent (iphone-01): Added the error log: `src/debug/errorLog.ts` (tested in Node), with its on-screen panel in `src/shell/errorLogPanel.ts`, which main.ts imports first so it also catches startup errors. With `?debug`, uncaught errors and unhandled rejections show in a red panel at the bottom that never blocks input. Without the flag nothing listens. README: a paste-ready "Play on iPhone" section with the real link (https://yahlibrown.github.io/Block-Blast/), an "Install on iPhone" section, a `?debug` note, and Safari added to the Wi-Fi steps. index.html: `apple-mobile-web-app-title` "Block Blast", `mobile-web-app-capable`, and status bar `black-translucent` (the HUD and gear already pad `safe-area-inset-top`). A build with `PAGES_BASE_PATH=/block-blast` resolves the Apple touch icon to `/block-blast/apple-touch-icon-180x180.png`, and the file is in `dist/`. The icon criterion stays open until it's checked on the deployed site and the phone. Not done: pushing to `main` and the deploy (left to the developer), and the iPhone checks.
