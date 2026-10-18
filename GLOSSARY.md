@@ -95,3 +95,7 @@ _Avoid_: Theme, palette (when meaning an unlockable)
 **Palette Shift**:
 An automatic change of the background and glow colors during a **Run** as the score passes thresholds, layered on top of the chosen **Skin**.
 _Avoid_: Skin change, level, theme
+
+**Home Screen Hint**:
+A dismissable card on the **Game Over** screen, shown to iPhone players in a Safari tab, inviting them to add the game to their Home Screen so their **Best Score** and progress are never wiped.
+_Avoid_: Install prompt, install banner, nag

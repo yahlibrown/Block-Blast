@@ -1,0 +1,21 @@
+# 01: Live site up to date, iPhone error log, "Play on iPhone" README
+
+**What to build:** Bring the GitHub Pages site up to date so every friend gets the latest version, and give the developer, who has no Mac, a way to see errors that only happen on an iPhone.
+- **Live site:** push the pending local commits to `main`, and confirm the deploy run goes green.
+- **Error log:** an opt-in on-screen error log, switched on by a URL flag (e.g. `?debug`). It lists uncaught errors and unhandled promise rejections over the game. Players without the flag never see it.
+- **README:** a short, paste-ready "Play on iPhone" section: open the link in Safari and play, then optionally Share → Add to Home Screen to play offline and keep your Best Score. Update Android-only wording where it now applies to both phones.
+- **Home Screen icon and title:** check that the Apple touch icon and the Home Screen app title resolve correctly under the GitHub Pages base path, and that the status-bar style suits the dark theme.
+
+See the spec: Play on iPhone.
+
+**Blocked by:** None (can start immediately)
+
+**Status:** ready-for-agent
+
+- [ ] The live site matches local `main`, and the deploy run is green
+- [ ] With the debug flag, a thrown error and an unhandled rejection both show up on screen; without it, nothing is shown
+- [ ] The README has a "Play on iPhone" section that can be pasted into a text message as-is
+- [ ] The Apple touch icon loads from the deployed site, and Add to Home Screen shows the right icon and the name "Block Blast"
+- [ ] Checked on the iPhone: the live site loads in Safari and the debug flag shows the log
+
+## Comments
