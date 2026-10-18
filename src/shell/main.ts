@@ -72,13 +72,17 @@ for (const toggle of settingToggles(device)) {
   });
 }
 // Browsers only start audio from a user gesture: (re)unlock on every touch while sound is on.
-document.addEventListener(
-  "pointerdown",
-  () => {
-    if (settings.sound) audio.unlock();
-  },
-  { capture: true },
-);
+// iOS only counts a touch's end as a gesture, so unlock on pointerup/touchend too; capture
+// runs it before the drop's Placement, so the first Placement already has its sound.
+for (const type of ["pointerdown", "pointerup", "touchend"]) {
+  document.addEventListener(
+    type,
+    () => {
+      if (settings.sound) audio.unlock();
+    },
+    { capture: true },
+  );
+}
 
 // Skins (ticket 13): the chosen Skin is a setting; only unlocked Skins can be shown.
 const shownSkin = (): SkinId => activeSkin(state.unlocked, settings.skin);
