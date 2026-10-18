@@ -37,7 +37,12 @@ export interface DragHost {
   returnToTray(slot: number, from: PieceAt): void;
 }
 
-export function attachDrag(canvas: HTMLCanvasElement, host: DragHost): void {
+export interface DragControl {
+  /** End any Drag in progress with a Return, as if the finger had been lifted off the Board (e.g. the phone turned sideways). */
+  cancel(): void;
+}
+
+export function attachDrag(canvas: HTMLCanvasElement, host: DragHost): DragControl {
   /** `anchor`: a finger position and where the Piece was drawn then; the Piece moves `gain`× the finger's travel from it. */
   let active: {
     pointerId: number;
@@ -85,11 +90,18 @@ export function attachDrag(canvas: HTMLCanvasElement, host: DragHost): void {
 
   for (const type of ["pointercancel", "lostpointercapture"] as const) {
     canvas.addEventListener(type, (e) => {
-      if (active?.pointerId !== e.pointerId) return;
-      const released = drag;
-      end();
-      if (released) returnToTray(released);
+      if (active?.pointerId === e.pointerId) cancel();
     });
+  }
+
+  /** End the Drag with a Return; the finger's later moves and lift are ignored. */
+  function cancel(): void {
+    if (!active) return;
+    const { pointerId } = active;
+    const released = drag;
+    end();
+    canvas.releasePointerCapture?.(pointerId);
+    if (released) returnToTray(released);
   }
 
   function returnToTray(released: DragView): void {
@@ -127,4 +139,6 @@ export function attachDrag(canvas: HTMLCanvasElement, host: DragHost): void {
     drag = null;
     host.changed(null);
   }
+
+  return { cancel };
 }

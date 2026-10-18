@@ -28,6 +28,7 @@ import { readDeviceFacts } from "./device";
 import { createHomeScreenHint } from "../persistence/homeScreenHint";
 import { requestPersistentStorage } from "../persistence/persistentStorage";
 import { createHomeScreenHintCard } from "./homeScreenHintCard";
+import { createUprightScreen } from "./uprightScreen";
 import "./style.css";
 
 const canvas = document.querySelector<HTMLCanvasElement>("#game");
@@ -238,7 +239,7 @@ if (state.over) {
   showGameOver();
 }
 
-attachDrag(canvas, {
+const dragControl = attachDrag(canvas, {
   getState: () => state,
   getSize: () => ({ width: cssWidth, height: cssHeight, insets }),
   fitsAt: (slot, origin) => queryFit(state, slot, origin).fits,
@@ -301,3 +302,19 @@ for (const phase of ["start", "move"] as const) {
     { passive: false },
   );
 }
+
+// Upright screen (iPhone ticket 05): iOS ignores the portrait lock, so a sideways phone is covered
+// until it's turned back. A Drag in progress Returns; the Run itself is never touched.
+const uprightScreen = createUprightScreen(document.body);
+function checkUpright(): void {
+  if (readDeviceFacts().turnUpright) {
+    dragControl.cancel();
+    uprightScreen.show();
+  } else {
+    uprightScreen.hide();
+  }
+}
+window.addEventListener("resize", checkUpright);
+window.addEventListener("orientationchange", checkUpright);
+window.visualViewport?.addEventListener("resize", checkUpright);
+checkUpright();

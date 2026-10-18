@@ -14,6 +14,11 @@ export interface DeviceInputs {
   readonly navigator: NavigatorLike | undefined;
   /** Running as an installed Home Screen app (display-mode standalone, or iOS `navigator.standalone`). */
   readonly standalone: boolean;
+  /**
+   * The main input is a finger (`pointer: coarse`): a phone, not a desktop with a mouse.
+   * Unknown counts as false, so a desktop window is never asked to turn upright.
+   */
+  readonly touchFirst?: boolean;
   /** The visible viewport, in CSS pixels. */
   readonly width: number;
   readonly height: number;
@@ -29,14 +34,21 @@ export interface DeviceFacts {
   readonly iPhoneSafariTab: boolean;
   /** The screen is portrait (or square), not sideways. */
   readonly upright: boolean;
+  /**
+   * A phone held sideways: the game asks the player to turn it upright and waits.
+   * Desktop windows are usually wider than tall and are never asked.
+   */
+  readonly turnUpright: boolean;
 }
 
 export function deviceFacts(inputs: DeviceInputs): DeviceFacts {
   const iPhone = isIPhone(inputs.navigator);
+  const upright = isUpright(inputs.width, inputs.height);
   return {
     vibrationSupported: typeof inputs.navigator?.vibrate === "function",
     iPhoneSafariTab: iPhone && !inputs.standalone,
-    upright: isUpright(inputs.width, inputs.height),
+    upright,
+    turnUpright: !upright && inputs.touchFirst === true,
   };
 }
 

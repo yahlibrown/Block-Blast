@@ -78,3 +78,20 @@ describe("device facts", () => {
     expect(isUpright(width, height)).toBe(upright);
   });
 });
+
+describe("asking to turn the phone upright", () => {
+  it.each<[string, NavigatorLike, boolean, boolean, number, number, boolean]>([
+    ["an iPhone in a Safari tab, upright", iPhone, true, false, 393, 659, false],
+    ["an iPhone in a Safari tab, sideways", iPhone, true, false, 852, 300, true],
+    ["an iPhone Home Screen app, sideways", iPhone, true, true, 852, 393, true],
+    ["an Android phone, sideways", android, true, false, 915, 360, true],
+    ["an Android phone installed, upright", android, true, true, 412, 915, false],
+    ["a desktop browser in a wide window", desktop, false, false, 1280, 720, false],
+  ])("for %s: %s", (_, navigator, touchFirst, standalone, width, height, expected) => {
+    expect(deviceFacts({ navigator, standalone, touchFirst, width, height }).turnUpright).toBe(expected);
+  });
+
+  it("never asks when it isn't known whether the screen is touch-first", () => {
+    expect(deviceFacts({ navigator: desktop, standalone: false, width: 1280, height: 720 }).turnUpright).toBe(false);
+  });
+});
