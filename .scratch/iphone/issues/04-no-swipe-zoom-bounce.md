@@ -25,3 +25,5 @@ See the spec: Play on iPhone.
 - [ ] Android Drags, Snap and Return feel unchanged
 
 ## Comments
+
+- 2026-10-18 (agent, branch iphone-04): Added `src/input/touchGuard.ts`, a pure rule for which touches get `preventDefault()` (tested): every touch that begins on the canvas, every pinch, and any one-finger move outside the settings/Game Over panels. Taps on buttons and one-finger scrolls inside the panels are left alone. `main.ts` wires it on `touchstart`/`touchmove` (non-passive) and also cancels `contextmenu` alongside the existing `gesturestart`/`dblclick`. The panels get `overscroll-behavior: contain`. Existing CSS rules kept. None of the criteria ticked: all of them need the phone (iPhone and Android).

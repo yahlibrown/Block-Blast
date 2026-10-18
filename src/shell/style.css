@@ -529,3 +529,9 @@ body {
   background: linear-gradient(90deg, #3ecf6e, #8dffb4);
   transition: width 600ms ease-out;
 }
+
+/* Gesture guards (iPhone ticket 04): a panel scrolled to its end never hands the scroll on to the page. */
+.settings__panel,
+.game-over__panel {
+  overscroll-behavior: contain;
+}
