@@ -1,7 +1,7 @@
 // Pointer drag: Tray Piece → Board origin. Pointer Events cover touch and mouse.
 // Holds no rules: it asks the host, which asks the core, what fits, for the Snap, and to attempt the Placement.
 import type { GameState, Position } from "../core";
-import { layoutGame, type DragView } from "../renderer/renderer";
+import { layoutGame, type DragView, type Insets } from "../renderer/renderer";
 import {
   amplifiedTopLeft,
   boardPosition,
@@ -25,8 +25,8 @@ const TAP_SLOP_CELLS = 0.5;
 
 export interface DragHost {
   getState(): GameState;
-  /** Canvas size in CSS pixels. */
-  getSize(): { width: number; height: number };
+  /** Canvas size in CSS pixels, and the safe-area insets the layout keeps clear of. */
+  getSize(): { width: number; height: number; insets?: Insets };
   /** Core fit query: does the Piece in `slot` fit at `origin`? */
   fitsAt(slot: number, origin: Position): boolean;
   /** Attempt the Placement; return true if it landed (false → Return). */
@@ -51,8 +51,8 @@ export function attachDrag(canvas: HTMLCanvasElement, host: DragHost): void {
   let drag: DragView | null = null;
 
   const layout = () => {
-    const { width, height } = host.getSize();
-    return layoutGame(width, height, host.getState().board.length);
+    const { width, height, insets } = host.getSize();
+    return layoutGame(width, height, host.getState().board.length, insets);
   };
   const point = (e: PointerEvent): Point => {
     const r = canvas.getBoundingClientRect();
