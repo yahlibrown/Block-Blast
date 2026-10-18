@@ -1,4 +1,5 @@
 // Shell: wires the core to the Canvas. Owns the DOM and the frame loop.
+import "./errorLogPanel"; // first, so it catches startup errors too (only with ?debug)
 import { attemptPlacement, create, profileOf, queryFit, trayFits, type GameState, type SkinId } from "../core";
 import { skinLook } from "../renderer/skins";
 import { activeSkin, createSkinPicker, createSkinStats } from "./skins";
