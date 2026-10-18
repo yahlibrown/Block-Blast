@@ -9,6 +9,7 @@ export function readDeviceInputs(): DeviceInputs {
   return {
     navigator,
     standalone: iosStandalone || displayStandalone,
+    touchFirst: window.matchMedia?.("(pointer: coarse)").matches ?? false,
     width: viewport?.width ?? window.innerWidth,
     height: viewport?.height ?? window.innerHeight,
   };
