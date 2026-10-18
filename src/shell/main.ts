@@ -7,6 +7,7 @@ import { createTextOverlay } from "../feedback/overlay";
 import { createComboTag } from "../feedback/comboTag";
 import { createSensoryPlayer } from "../feedback/sensoryPlayer";
 import { attachDrag } from "../input/drag";
+import { cancelsTouch } from "../input/touchGuard";
 import { returnAt, type PieceAt } from "../input/returnFlight";
 import { createHud, createScoreStats } from "./hud";
 import { layoutGame, render, trayPieceOrigin, type DragView, type ReturnView } from "../renderer/renderer";
@@ -252,14 +253,25 @@ attachDrag(canvas, {
   },
 });
 
-// Block browser gestures the CSS can't fully stop (iOS-style pinch, double-tap zoom).
-for (const type of ["gesturestart", "dblclick"] as const) {
+// Block browser gestures the CSS can't fully stop on iOS Safari: pinch, double-tap zoom, the long-press callout,
+// and (via the touch guard) edge swipe-back, toolbar pull-up and page bounce.
+for (const type of ["gesturestart", "dblclick", "contextmenu"] as const) {
   document.addEventListener(type, (e) => e.preventDefault(), { passive: false });
 }
-document.addEventListener(
-  "touchmove",
-  (e) => {
-    if (e.touches.length > 1) e.preventDefault();
-  },
-  { passive: false },
-);
+for (const phase of ["start", "move"] as const) {
+  document.addEventListener(
+    `touch${phase}`,
+    (e) => {
+      // A touch event's target stays the element the touch began on, even as the finger moves away.
+      const target = e.target instanceof Element ? e.target : null;
+      const cancel = cancelsTouch({
+        phase,
+        fingers: e.touches.length,
+        onPlayArea: target === canvas,
+        inScrollable: !!target?.closest(".settings__panel, .game-over__panel"),
+      });
+      if (cancel && e.cancelable) e.preventDefault();
+    },
+    { passive: false },
+  );
+}
