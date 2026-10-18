@@ -21,6 +21,8 @@ import { loadSettings, saveSettings, type Settings } from "../persistence/settin
 import { createAudio } from "../audio/audio";
 import { createHaptics } from "../haptics/haptics";
 import { createSettingsSheet } from "./settingsSheet";
+import { settingToggles } from "./settingToggles";
+import { readDeviceFacts } from "./device";
 import "./style.css";
 
 const canvas = document.querySelector<HTMLCanvasElement>("#game");
@@ -60,12 +62,15 @@ function changeSettings(change: Partial<Settings>): void {
   saveSettings(persistence, settings);
 }
 applySettings(settings);
+const device = readDeviceFacts();
 const settingsSheet = createSettingsSheet(document.body);
-settingsSheet.addToggle("Sound", settings.sound, (sound) => {
-  changeSettings({ sound });
-  if (sound) audio.unlock(); // the toggle tap is a user gesture
-});
-settingsSheet.addToggle("Vibration", settings.haptics, (haptics) => changeSettings({ haptics }));
+// Vibration is offered only where the device can vibrate; its saved setting is kept either way.
+for (const toggle of settingToggles(device)) {
+  settingsSheet.addToggle(toggle.label, settings[toggle.key], (value) => {
+    changeSettings({ [toggle.key]: value });
+    if (toggle.key === "sound" && value) audio.unlock(); // the toggle tap is a user gesture
+  });
+}
 // Browsers only start audio from a user gesture: (re)unlock on every touch while sound is on.
 document.addEventListener(
   "pointerdown",

@@ -70,6 +70,7 @@ The app icons in `public/` are generated from `public/icon.svg`. After editing t
 - `src/renderer/`: Canvas 2D drawing, Skin looks, Palette Shift colors, and the Clear effects player (`effects/`).
 - `src/audio/`: generated Web Audio sounds.
 - `src/haptics/`: the Vibration API wrapper.
+- `src/device/`: device facts (can it vibrate, is it an iPhone in a Safari tab, is the screen upright), worked out from browser globals passed in by the shell.
 - `src/persistence/`: localStorage save and resume, profile and settings.
 - `src/shell/`: the entry point, page and screens (HUD, Game Over, settings, Skin picker), and the frame loop. It wires everything together.
 - `src/testing/`: shared helpers for core tests (they use only the core's public interface).
