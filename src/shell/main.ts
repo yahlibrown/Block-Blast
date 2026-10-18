@@ -23,6 +23,9 @@ import { createHaptics } from "../haptics/haptics";
 import { createSettingsSheet } from "./settingsSheet";
 import { settingToggles } from "./settingToggles";
 import { readDeviceFacts } from "./device";
+import { createHomeScreenHint } from "../persistence/homeScreenHint";
+import { requestPersistentStorage } from "../persistence/persistentStorage";
+import { createHomeScreenHintCard } from "./homeScreenHintCard";
 import "./style.css";
 
 const canvas = document.querySelector<HTMLCanvasElement>("#game");
@@ -31,6 +34,7 @@ const ctx = canvas.getContext("2d");
 if (!ctx) throw new Error("Canvas 2D not supported");
 
 const persistence = createPersistence(localStorageOrNull());
+requestPersistentStorage(navigator); // fire and forget: never blocks or breaks play
 let state: GameState = persistence.loadRun({ seed: Date.now() }); // resumes the saved Run
 let fits = trayFits(state); // recomputed after every Placement
 let drag: DragView | null = null;
@@ -45,6 +49,7 @@ const skinStats = createSkinStats(gameOver.stats, (chosen) => chooseSkin(chosen)
 function showGameOver(): void {
   gameOverStats.update(state);
   skinStats.update(state, shownSkin());
+  hintCard.update(homeScreenHint.shown);
   gameOver.show();
 }
 
@@ -63,6 +68,12 @@ function changeSettings(change: Partial<Settings>): void {
 }
 applySettings(settings);
 const device = readDeviceFacts();
+// Home Screen Hint (iPhone ticket 07): under "Play again" on the Game Over screen, which keeps focus.
+const homeScreenHint = createHomeScreenHint(persistence, device);
+const hintCard = createHomeScreenHintCard(gameOver.below, () => {
+  homeScreenHint.dismiss();
+  gameOver.focusPlayAgain();
+});
 const settingsSheet = createSettingsSheet(document.body);
 // Vibration is offered only where the device can vibrate; its saved setting is kept either way.
 for (const toggle of settingToggles(device)) {
@@ -237,7 +248,10 @@ attachDrag(canvas, {
     }
     hud.update(state, now);
     loop.animate((t) => hud.tick(t));
-    if (state.over) showGameOver();
+    if (state.over) {
+      homeScreenHint.reachedGameOver(); // only a Run ending now counts, not a resumed one
+      showGameOver();
+    }
     return true;
   },
   changed(next) {
