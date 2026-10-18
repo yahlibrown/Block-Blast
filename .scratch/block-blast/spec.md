@@ -134,7 +134,7 @@ Respects ADR-0001: a PWA on GitHub Pages, a pure TypeScript core, a Canvas 2D re
 - **Piece catalogue**: the fixed set of Piece shapes, matching Block Blast's standard set. It's part of the core.
 - **Dealer**: inside the core. It deals a Tray from a seeded random source. It guarantees that at least one dealt Piece fits the current Board, and it applies a tunable bias toward Pieces that would complete a Line.
 - **Tuning**: a single plain-data table of all balance numbers, read by the core.
-- **Renderer**: Canvas 2D. It draws the Board, Tray, dragged Piece, ghost preview, Line highlights, particles, flashes, shake, Praise, Combo display, score count-up, Skin styling and Palette Shift colors. It holds no game rules.
+- **Renderer**: Canvas 2D. It draws the Board, Tray, dragged Piece, ghost preview, Line highlights, particles, flashes, shake, Praise and its Combo Pop, score count-up, Skin styling and Palette Shift colors. It holds no game rules. (The score HUD and its Combo Tag are plain DOM above the canvas.)
 - **Input**: pointer and touch drag handling. It lifts the Piece above the finger, carries it further than the finger moves on touch (Amplified Drag, ticket 14), keeps it on screen, and maps where it is drawn to a Board origin. It asks the core whether a Placement fits for the ghost preview, and submits the Placement on release.
 - **Feedback director**: consumes the core's events and turns them into Praise text, particles, shake, sounds and vibration. It decides which Praise goes with which Multi-Clear size or Combo level.
 - **Audio**: sounds generated with the Web Audio API, with no audio files. Rising chime pitch per Combo step. Respects the sound setting.

@@ -1,10 +1,12 @@
-// Text overlay: plays the director's text cues (Praise, COMBO ×N, NEW BEST!)
-// as timed pops. Pure and time-driven: the shell passes `now` (rAF time, ms)
-// and hands `frame(now)` to the renderer, which draws it over the Board.
+// Text overlay: plays the director's text cues (Praise and its Combo Pop, NEW BEST!,
+// New Skin) as timed pops. Nothing stays on the Board: the Combo Pop lives and fades
+// with the Praise it came with (the lasting Combo level is the HUD's Combo Tag).
+// Pure and time-driven: the shell passes `now` (rAF time, ms) and hands
+// `frame(now)` to the renderer, which draws it over the Board.
 // It's drawn on the canvas and owns no input, so it never blocks a drag.
 import type { CuePlayer, FeedbackCue } from "./director";
 
-export type PopRole = "praise" | "combo" | "newBest" | "skinUnlocked";
+export type PopRole = "praise" | "comboPop" | "newBest" | "skinUnlocked";
 
 /** One text to draw this frame. The renderer decides where each role sits and its look. */
 export interface PopFrame {
@@ -30,8 +32,6 @@ const PRAISE_MS = 1000;
 const PRAISE_MS_PER_TIER = 150;
 const POP_IN_MS = 180;
 const FADE_OUT_MS = 350;
-const COMBO_POP_MS = 260;
-const COMBO_FADE_MS = 600;
 const NEW_BEST_MS = 1600;
 const NEW_BEST_POP_MS = 280;
 const SKIN_BANNER_MS = 2400;
@@ -44,24 +44,30 @@ interface Timed {
   readonly life: number;
 }
 
+/** A Praise, with the Combo level of its Combo Pop (null: no Pop). */
+interface PraiseTimed extends Timed {
+  readonly comboLevel: number | null;
+}
+
 export function createTextOverlay(): TextOverlay {
-  let praise: Timed | null = null;
+  let praise: PraiseTimed | null = null;
   let newBest: Timed | null = null;
   let skin: Timed | null = null;
-  let combo: { level: number; start: number; end: number | null } | null = null;
 
   return {
     play(cues, now) {
+      // A Combo increase comes with the same Placement's Praise, in either order.
+      const comboLevel = cues.find((c) => c.kind === "combo")?.level ?? null;
       for (const cue of cues) {
         switch (cue.kind) {
           case "praise":
-            praise = { text: cue.text, tier: cue.tier, start: now, life: PRAISE_MS + cue.tier * PRAISE_MS_PER_TIER };
-            break;
-          case "combo":
-            combo = { level: cue.level, start: now, end: null };
-            break;
-          case "comboEnd":
-            if (combo && combo.end === null) combo = { ...combo, end: now };
+            praise = {
+              text: cue.text,
+              tier: cue.tier,
+              start: now,
+              life: PRAISE_MS + cue.tier * PRAISE_MS_PER_TIER,
+              comboLevel,
+            };
             break;
           case "newBest":
             newBest = { text: "NEW BEST!", tier: 0, start: now, life: NEW_BEST_MS };
@@ -73,27 +79,19 @@ export function createTextOverlay(): TextOverlay {
       }
     },
     reset() {
-      praise = newBest = skin = combo = null;
+      praise = newBest = skin = null;
     },
     frame(now) {
       const frames: PopFrame[] = [];
-      if (combo) {
-        const sinceEnd = combo.end === null ? -1 : Math.max(0, now - combo.end);
-        if (sinceEnd < COMBO_FADE_MS) {
-          const t = Math.min(1, Math.max(0, now - combo.start) / COMBO_POP_MS);
-          frames.push({
-            role: "combo",
-            text: `COMBO ×${combo.level}`,
-            tier: 0,
-            scale: 1 + 0.4 * (1 - easeOutBack(t)),
-            alpha: sinceEnd < 0 ? 1 : 1 - sinceEnd / COMBO_FADE_MS,
-            rise: 0,
-          });
-        }
-      }
       if (praise) {
         const f = popFrame("praise", praise, now, POP_IN_MS, 0.6);
-        if (f) frames.push(f);
+        if (f) {
+          frames.push(f);
+          // The Combo Pop moves and fades with its Praise, so it never outstays it.
+          if (praise.comboLevel !== null) {
+            frames.push({ ...f, role: "comboPop", text: `COMBO ×${praise.comboLevel}`, tier: 0 });
+          }
+        }
       }
       if (newBest) {
         const f = popFrame("newBest", newBest, now, NEW_BEST_POP_MS, 0.3);
@@ -107,10 +105,7 @@ export function createTextOverlay(): TextOverlay {
     },
     busy(now) {
       const live = (p: Timed | null) => p !== null && now - p.start < p.life;
-      const comboMoving =
-        combo !== null &&
-        (now - combo.start < COMBO_POP_MS || (combo.end !== null && now - combo.end < COMBO_FADE_MS));
-      return live(praise) || live(newBest) || live(skin) || comboMoving;
+      return live(praise) || live(newBest) || live(skin);
     },
   };
 }

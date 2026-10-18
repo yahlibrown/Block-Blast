@@ -56,7 +56,7 @@ export interface View {
   readonly backdrop?: Backdrop;
   /** Clear effects hook (ticket 10): shakes the Board and draws over it, under the Tray and drag. */
   readonly boardOverlay?: BoardOverlay;
-  /** Feedback texts (Praise, COMBO ×N, NEW BEST!) to draw over everything this frame. */
+  /** Feedback texts (Praise and its Combo Pop, NEW BEST!, New Skin) to draw over everything this frame. */
   readonly texts?: readonly OverlayText[];
   /** The chosen Skin: Board, Cell and block look. Defaults to the first Skin. */
   readonly skin?: SkinLook;
@@ -70,7 +70,7 @@ export interface BoardOverlay {
 
 /** One feedback text pop, already animated (the feedback overlay computes these). */
 export interface OverlayText {
-  readonly role: "praise" | "combo" | "newBest" | "skinUnlocked";
+  readonly role: "praise" | "comboPop" | "newBest" | "skinUnlocked";
   readonly text: string;
   /** Praise strength 0..4. */
   readonly tier: number;
@@ -190,8 +190,8 @@ export function render(
   for (const text of view.texts ?? []) drawOverlayText(ctx, layout.board, columns, text);
 }
 
-/** Where each feedback text sits, as a fraction of the Board's height from its top. */
-const TEXT_ROW: Record<OverlayText["role"], number> = { newBest: 0.22, praise: 0.45, combo: 0.66, skinUnlocked: 0.86 };
+/** Where each feedback text sits, as a fraction of the Board's height from its top (the Combo Pop just under the Praise). */
+const TEXT_ROW: Record<OverlayText["role"], number> = { newBest: 0.22, praise: 0.45, comboPop: 0.59, skinUnlocked: 0.86 };
 /** Praise colors by tier: white "Good!" up to violet "Unbelievable!". */
 const PRAISE_COLORS = ["#ffffff", "#ffe14d", "#ffb330", "#ff6fb5", "#c58bff"] as const;
 

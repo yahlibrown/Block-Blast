@@ -24,17 +24,40 @@ describe("text overlay", () => {
     expect(roles(overlay.frame(400))).toEqual(["praise:Amazing!"]);
   });
 
-  it("keeps COMBO ×N up while the Combo lasts, and fades it when it breaks", () => {
+  it("shows the Combo Pop with the Praise, moving and fading with it", () => {
     const overlay = createTextOverlay();
-    overlay.play([{ kind: "combo", level: 3 }], 0);
+    overlay.play([{ kind: "combo", level: 3 }, { kind: "praise", text: "Great!", tier: 1 }], 0);
 
-    expect(roles(overlay.frame(60_000))).toEqual(["combo:COMBO ×3"]);
-    expect(overlay.busy(60_000)).toBe(false); // nothing moving: no frames needed
+    for (const t of [50, 600, 1100]) {
+      const [praise, combo] = overlay.frame(t);
+      expect(`${praise!.role}:${praise!.text}`).toBe("praise:Great!");
+      expect(`${combo!.role}:${combo!.text}`).toBe("comboPop:COMBO ×3");
+      expect(combo!.alpha).toBe(praise!.alpha);
+      expect(combo!.rise).toBe(praise!.rise);
+    }
+  });
 
-    overlay.play([{ kind: "comboEnd", level: 3 }], 60_000);
-    expect(overlay.busy(60_100)).toBe(true);
-    expect(overlay.frame(60_100)[0]!.alpha).toBeLessThan(1);
-    expect(overlay.frame(70_000)).toEqual([]);
+  it("never leaves the Combo Pop on the Board once the Praise is gone", () => {
+    const overlay = createTextOverlay();
+    overlay.play([{ kind: "praise", text: "Great!", tier: 1 }, { kind: "combo", level: 3 }], 0);
+
+    expect(overlay.frame(5000)).toEqual([]);
+    expect(overlay.busy(5000)).toBe(false);
+  });
+
+  it("drops the Combo Pop when newer Praise comes without one (a fresh Combo at ×1)", () => {
+    const overlay = createTextOverlay();
+    overlay.play([{ kind: "combo", level: 2 }, { kind: "praise", text: "Good!", tier: 0 }], 0);
+    overlay.play([{ kind: "praise", text: "Great!", tier: 1 }], 300);
+
+    expect(roles(overlay.frame(400))).toEqual(["praise:Great!"]);
+  });
+
+  it("shows nothing on the Board when the Combo breaks", () => {
+    const overlay = createTextOverlay();
+    overlay.play([{ kind: "comboEnd", level: 3 }], 0);
+
+    expect(overlay.frame(100)).toEqual([]);
   });
 
   it("bursts NEW BEST! once and then clears it", () => {

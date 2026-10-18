@@ -63,6 +63,14 @@ _Avoid_: Perfect clear, all clear, wipe
 The encouraging message that pops up after a **Clear**, escalating with the size of the **Multi-Clear** and the **Combo** level (e.g. "Great!", "Amazing!").
 _Avoid_: Toast, popup, compliment
 
+**Combo Pop**:
+The brief "COMBO ×N" message shown together with the **Praise** when the **Combo** grows to ×2 or more; it fades away with the Praise.
+_Avoid_: Combo popup, combo display, combo banner
+
+**Combo Tag**:
+The small, always-visible "×N" beside the score showing the current **Combo** level while it is ×2 or more, kept off the **Board**; it fades out when the Combo breaks.
+_Avoid_: Combo meter, combo badge, combo counter
+
 **Run**:
 One game, from an empty **Board** to **Game Over**.
 _Avoid_: Session, round, match

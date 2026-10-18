@@ -16,9 +16,9 @@ import { soundsFor, vibrationFor } from "./sensory";
 export type FeedbackCue =
   /** Praise text after a Clear; `tier` 0 (Good!) .. PRAISE.length-1 (Unbelievable!). */
   | { readonly kind: "praise"; readonly text: string; readonly tier: number }
-  /** Show or raise the "COMBO ×N" display. */
+  /** The Combo grew (×2 and up): a Combo Pop with the Praise, and the Combo Tag bumps. */
   | { readonly kind: "combo"; readonly level: number }
-  /** A shown Combo broke: fade the display out calmly. */
+  /** A shown Combo broke: the Combo Tag fades out calmly. */
   | { readonly kind: "comboEnd"; readonly level: number }
   /** The first time this Run the score passed the Best Score. */
   | { readonly kind: "newBest"; readonly score: number }

@@ -4,6 +4,7 @@ import { skinLook } from "../renderer/skins";
 import { activeSkin, createSkinPicker, createSkinStats } from "./skins";
 import { directFeedback, type CuePlayer } from "../feedback/director";
 import { createTextOverlay } from "../feedback/overlay";
+import { createComboTag } from "../feedback/comboTag";
 import { createSensoryPlayer } from "../feedback/sensoryPlayer";
 import { attachDrag } from "../input/drag";
 import { returnAt, type PieceAt } from "../input/returnFlight";
@@ -91,12 +92,16 @@ function refreshSkin(instant = false): void {
 }
 
 // Feedback players: each gets every Placement's cues and plays the kinds it handles.
-/** Praise, COMBO ×N, NEW BEST! and New Skin pops, drawn over the Board. */
+/** Praise (with its Combo Pop), NEW BEST! and New Skin pops, drawn over the Board. */
 const overlay = createTextOverlay();
+/** The Combo Tag beside the score; a resumed Run shows its Combo at once. */
+const comboTag = createComboTag();
+comboTag.show(state.combo);
 /** Clear effects (ticket 10): Line flash, particles, shake, Board Clear flash. */
 const effects = createClearEffects();
 const players: readonly CuePlayer[] = [
   overlay,
+  comboTag,
   effects,
   createSensoryPlayer(audio, haptics),
   {
@@ -150,6 +155,7 @@ function draw(now: number = lastNow): void {
     boardOverlay,
     texts: overlay.frame(now),
   });
+  hud.comboTag(comboTag.frame(now));
 }
 
 /** Where the Returning Piece is this frame (it heads for its slot in the current layout). */
