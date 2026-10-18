@@ -8,7 +8,7 @@ import { createTextOverlay } from "../feedback/overlay";
 import { createComboTag } from "../feedback/comboTag";
 import { createSensoryPlayer } from "../feedback/sensoryPlayer";
 import { attachDrag } from "../input/drag";
-import { cancelsTouch } from "../input/touchGuard";
+import { cancelsTouch, CONTROL_SELECTOR, SCROLLABLE_CLASS } from "../input/touchGuard";
 import { returnAt, type PieceAt } from "../input/returnFlight";
 import { createHud, createScoreStats } from "./hud";
 import { layoutGame, NO_INSETS, render, trayPieceOrigin, type DragView, type Insets, type ReturnView } from "../renderer/renderer";
@@ -228,11 +228,6 @@ function localStorageOrNull(): Storage | null {
 }
 
 new ResizeObserver(resize).observe(canvas);
-// The page follows the visible viewport (Safari's toolbars), and the layout the safe-area insets.
-trackViewport((measured) => {
-  insets = measured;
-  resize();
-});
 hud.reset(state);
 if (state.over) {
   // The restored Run had already ended: show its Game Over screen.
@@ -295,7 +290,8 @@ for (const phase of ["start", "move"] as const) {
         phase,
         fingers: e.touches.length,
         onPlayArea: target === canvas,
-        inScrollable: !!target?.closest(".settings__panel, .game-over__panel"),
+        onControl: !!target?.closest(CONTROL_SELECTOR),
+        inScrollable: !!target?.closest(`.${SCROLLABLE_CLASS}`),
       });
       if (cancel && e.cancelable) e.preventDefault();
     },
@@ -314,7 +310,11 @@ function checkUpright(): void {
     uprightScreen.hide();
   }
 }
-window.addEventListener("resize", checkUpright);
-window.addEventListener("orientationchange", checkUpright);
-window.visualViewport?.addEventListener("resize", checkUpright);
-checkUpright();
+
+// The page follows the visible viewport (Safari's toolbars), and the layout the safe-area insets.
+// Every re-measure (resize, rotation, toolbars) also checks whether the phone is upright.
+trackViewport((measured) => {
+  insets = measured;
+  resize();
+  checkUpright();
+});

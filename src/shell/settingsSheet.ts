@@ -3,6 +3,7 @@
 //   - `addToggle(label, initial, onChange)` for on/off switches (sound, haptics),
 //   - or append any element to `content` (ticket 13: the Skin picker).
 // Toggles take effect immediately through their `onChange`; saving is the caller's job.
+import { SCROLLABLE_CLASS, TAPPABLE_CLASS } from "../input/touchGuard";
 
 export interface Toggle {
   /** Reflect a value changed elsewhere (does not call `onChange`). */
@@ -30,14 +31,14 @@ export function createSettingsSheet(parent: HTMLElement): SettingsSheet {
   gear.innerHTML = GEAR_SVG;
 
   const overlay = document.createElement("div");
-  overlay.className = "settings";
+  overlay.className = `settings ${TAPPABLE_CLASS}`; // tapping the dimmed area closes it
   overlay.hidden = true;
   overlay.setAttribute("role", "dialog");
   overlay.setAttribute("aria-modal", "true");
   overlay.setAttribute("aria-labelledby", "settings-title");
 
   const panel = document.createElement("div");
-  panel.className = "settings__panel";
+  panel.className = `settings__panel ${SCROLLABLE_CLASS}`;
 
   const title = document.createElement("h2");
   title.id = "settings-title";

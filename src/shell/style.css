@@ -113,6 +113,15 @@ body {
   opacity: 0.7;
 }
 
+/* A panel that may outgrow short screens (the settings sheet, Game Over screen): it scrolls vertically, and
+   scrolled to its end never hands the scroll on to the page. The touch guard leaves touches in it alone. */
+.scrollable {
+  box-sizing: border-box;
+  overflow-y: auto;
+  touch-action: pan-y;
+  overscroll-behavior: contain;
+}
+
 /* Game Over overlay: sits over the Board and blocks drags while shown. */
 .game-over {
   position: fixed;
@@ -148,6 +157,7 @@ body {
   background: #26315a;
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
   text-align: center;
+  max-height: 100%; /* fits the visible viewport, inside the overlay's safe-area padding */
 }
 
 .game-over__title {
@@ -273,6 +283,8 @@ body {
   background: #26315a;
   box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.4);
   animation: settings-up 220ms ease-out;
+  /* Fits the visible viewport (a Safari tab's toolbars included) and stays clear of the notch. */
+  max-height: calc(var(--app-height, 100dvh) - env(safe-area-inset-top, 0px) - 16px);
 }
 
 .settings__title {
@@ -353,23 +365,6 @@ body {
   from {
     transform: translateY(100%);
   }
-}
-
-/* Skins (ticket 13). Panels may outgrow short screens: let them scroll vertically. */
-/* Both fit the visible viewport (a Safari tab's toolbars included) and stay clear of the notch. */
-.settings__panel,
-.game-over__panel {
-  box-sizing: border-box;
-  overflow-y: auto;
-  touch-action: pan-y;
-}
-
-.game-over__panel {
-  max-height: 100%;
-}
-
-.settings__panel {
-  max-height: calc(var(--app-height, 100dvh) - env(safe-area-inset-top, 0px) - 16px);
 }
 
 /* A 2×2 preview of a Skin's Board and blocks; the corner radius hints at the block style. */
@@ -557,12 +552,6 @@ body {
   border-radius: 6px;
   background: linear-gradient(90deg, #3ecf6e, #8dffb4);
   transition: width 600ms ease-out;
-}
-
-/* Gesture guards (iPhone ticket 04): a panel scrolled to its end never hands the scroll on to the page. */
-.settings__panel,
-.game-over__panel {
-  overscroll-behavior: contain;
 }
 
 /* Home Screen Hint (iPhone ticket 07): a small card under "Play again", never over it. */

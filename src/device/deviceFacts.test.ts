@@ -74,7 +74,6 @@ describe("device facts", () => {
     ["iPhone SE sideways", 667, 375, false],
     ["Pro Max sideways", 932, 430, false],
   ])("treat %s as upright: %s", (_, width, height, upright) => {
-    expect(deviceFacts({ navigator: iPhone, standalone: false, width, height }).upright).toBe(upright);
     expect(isUpright(width, height)).toBe(upright);
   });
 });

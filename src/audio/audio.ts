@@ -49,8 +49,12 @@ export function createAudio(
   let ctx: AudioContext | null = null;
   let master: GainNode | null = null;
   let noise: AudioBuffer | null = null;
-  /** A resume asked for from a gesture and not yet settled: sounds scheduled now play once it does. */
-  let resuming = false;
+  /**
+   * Resumes asked for from gestures and not yet settled: sounds scheduled now play once one does.
+   * A pending resume never stops a later gesture from asking again (iOS ignores one asked on
+   * pointerdown and leaves it pending, but honours one from the touch's end).
+   */
+  let pendingResumes = 0;
 
   function setUp(context: AudioContext): void {
     const compressor = context.createDynamicsCompressor();
@@ -69,9 +73,9 @@ export function createAudio(
     silent.buffer = context.createBuffer(1, 1, context.sampleRate);
     silent.connect(context.destination);
     silent.start();
-    resuming = true;
+    pendingResumes++;
     const settled = () => {
-      if (ctx === context) resuming = false;
+      if (ctx === context) pendingResumes--;
     };
     void context.resume().then(settled, settled);
   }
@@ -81,18 +85,18 @@ export function createAudio(
     unlock() {
       try {
         if (!ctx || ctx.state === "closed") {
-          resuming = false;
+          pendingResumes = 0;
           ctx = createContext();
           if (!ctx) return;
           setUp(ctx);
         }
-        if (ctx.state !== "running" && !resuming) wake(ctx);
+        if (ctx.state !== "running") wake(ctx);
       } catch {
         // No Web Audio: the game stays silent.
       }
     },
     play(sounds) {
-      if (!this.enabled || !ctx || !master || !noise || (ctx.state !== "running" && !resuming)) return;
+      if (!this.enabled || !ctx || !master || !noise || (ctx.state !== "running" && pendingResumes === 0)) return;
       const t = ctx.currentTime;
       try {
         for (const sound of sounds) {

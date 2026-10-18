@@ -3,6 +3,7 @@
 // Skin progress in 13): they append their own rows to it before calling `show`.
 // `below` sits under "Play again" (the Home Screen Hint), so nothing there ever
 // pushes "Play again" down or covers it.
+import { SCROLLABLE_CLASS } from "../input/touchGuard";
 
 export interface GameOverScreen {
   /** Where later tickets put score, Best Score and Skin progress. */
@@ -28,7 +29,7 @@ export function createGameOverScreen(
   overlay.setAttribute("aria-labelledby", "game-over-title");
 
   const panel = document.createElement("div");
-  panel.className = "game-over__panel";
+  panel.className = `game-over__panel ${SCROLLABLE_CLASS}`;
 
   const title = document.createElement("h1");
   title.id = "game-over-title";

@@ -139,6 +139,30 @@ describe("audio", () => {
     });
   }
 
+  it("tries again on a later touch while an earlier resume is still pending", () => {
+    // iOS ignores a resume asked for on pointerdown (it stays pending) and only honours one from the touch's end.
+    const fake = fakeContext();
+    const { audio } = setUp(fake);
+
+    audio.unlock(); // pointerdown: pending
+    const blipsBefore = fake.log.blips;
+    audio.unlock(); // touchend: must still resume and blip
+
+    expect(fake.log.resumes).toBe(2);
+    expect(fake.log.blips).toBeGreaterThan(blipsBefore);
+  });
+
+  it("stops retrying once the context is running", async () => {
+    const fake = fakeContext();
+    const { audio } = setUp(fake);
+    audio.unlock();
+    await fake.settleResume();
+
+    audio.unlock();
+
+    expect(fake.log.resumes).toBe(1);
+  });
+
   it("starts a fresh context on the next touch if the browser closed the old one", async () => {
     const first = fakeContext();
     const second = fakeContext();

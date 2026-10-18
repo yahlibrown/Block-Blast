@@ -22,6 +22,45 @@ describe("persistent storage request", () => {
     expect(asked).toBe(1);
   });
 
+  const UA = {
+    iPhoneSafari:
+      "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1",
+    iPhoneFirefox:
+      "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) FxiOS/127.0 Mobile/15E148 Safari/605.1.15",
+    desktopChrome:
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
+    desktopFirefox: "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:127.0) Gecko/20100101 Firefox/127.0",
+    androidFirefox: "Mozilla/5.0 (Android 14; Mobile; rv:127.0) Gecko/127.0 Firefox/127.0",
+  };
+  const asks = (userAgent: string) => {
+    let asked = 0;
+    requestPersistentStorage({
+      userAgent,
+      storage: {
+        persist: async () => {
+          asked++;
+          return true;
+        },
+      },
+    });
+    return asked > 0;
+  };
+
+  it.each([
+    ["an iPhone in Safari", UA.iPhoneSafari],
+    ["an iPhone in Firefox (WebKit underneath)", UA.iPhoneFirefox],
+    ["Chrome", UA.desktopChrome],
+  ])("asks silently on %s", (_, userAgent) => {
+    expect(asks(userAgent)).toBe(true);
+  });
+
+  it.each([
+    ["desktop Firefox", UA.desktopFirefox],
+    ["Firefox on Android", UA.androidFirefox],
+  ])("never asks on %s, where it would show a permission prompt", (_, userAgent) => {
+    expect(asks(userAgent)).toBe(false);
+  });
+
   it.each([
     ["no navigator", undefined],
     ["no storage manager", {}],

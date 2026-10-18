@@ -32,8 +32,6 @@ export interface DeviceFacts {
    * iPhone browser (Chrome, Firefox, …) counts: they all have Safari's limits.
    */
   readonly iPhoneSafariTab: boolean;
-  /** The screen is portrait (or square), not sideways. */
-  readonly upright: boolean;
   /**
    * A phone held sideways: the game asks the player to turn it upright and waits.
    * Desktop windows are usually wider than tall and are never asked.
@@ -43,12 +41,10 @@ export interface DeviceFacts {
 
 export function deviceFacts(inputs: DeviceInputs): DeviceFacts {
   const iPhone = isIPhone(inputs.navigator);
-  const upright = isUpright(inputs.width, inputs.height);
   return {
     vibrationSupported: typeof inputs.navigator?.vibrate === "function",
     iPhoneSafariTab: iPhone && !inputs.standalone,
-    upright,
-    turnUpright: !upright && inputs.touchFirst === true,
+    turnUpright: !isUpright(inputs.width, inputs.height) && inputs.touchFirst === true,
   };
 }
 
