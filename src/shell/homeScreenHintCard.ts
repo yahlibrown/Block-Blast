@@ -63,9 +63,9 @@ export function createHomeScreenHintCard(
   };
 }
 
-/** Each step's glyph, drawn like Safari's: the address bar's menu button (two long lines and a short one), Share (a box with an arrow out of it), and a plus in a square. */
+/** Each step's glyph, drawn like Safari's: the address bar's menu button (two long lines, a short one on the right), Share (a box with an arrow out of it), and a plus in a square. */
 const ICON_PATHS: Record<StepIcon, string> = {
-  menu: "M4 7h16M4 12h16M4 17h10",
+  menu: "M4 7h16M4 12h16M10 17h10",
   share: "M12 3v12M8 7l4-4 4 4M8 10H6v11h12V10h-2",
   add: "M6 3h12a3 3 0 0 1 3 3v12a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V6a3 3 0 0 1 3-3M12 8v8M8 12h8",
 };
