@@ -43,7 +43,7 @@ body {
 /* The top band: drawn over the canvas, 72px below the top inset (TOP_BAND_HEIGHT in renderer.ts). */
 #hud {
   position: absolute;
-  top: 0;
+  top: var(--band-offset, 0px); /* moved down with the Board on tall screens: layoutGame's bandTop */
   left: 0;
   right: 0;
   z-index: 1;
@@ -232,7 +232,7 @@ body {
 /* Settings (ticket 11): gear in the HUD band's top-left, bottom sheet over the game. */
 .settings-gear {
   position: fixed;
-  top: calc(env(safe-area-inset-top, 0px) + 12px);
+  top: calc(env(safe-area-inset-top, 0px) + 12px + var(--band-offset, 0px));
   left: calc(env(safe-area-inset-left, 0px) + 12px);
   z-index: 5;
   display: flex;

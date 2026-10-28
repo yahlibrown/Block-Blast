@@ -14,3 +14,5 @@ Found in the ticket 08 playtest: on the iPhone 16 Home Screen app, there was abo
 - [ ] Checked on the iPhone as a Home Screen app and in a Safari tab
 
 ## Comments
+
+- Superseded by ticket 12 after the second playtest: splitting the spare height left a gap between the Board and the Tray.

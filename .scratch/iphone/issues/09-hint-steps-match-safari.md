@@ -16,3 +16,5 @@ The card stays dismissable and stays under "Play again". Found in the ticket 08 
 - [ ] Checked on the iPhone: the steps match what Safari shows
 
 ## Comments
+
+- Amended by ticket 13: on iOS 27, step 1 is a menu button in the address bar (lines), not •••.

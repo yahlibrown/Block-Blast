@@ -1,9 +1,10 @@
 // Home Screen Hint steps: which taps add the game to the Home Screen, read from the browser's user
-// agent. Safari 26 moved Share behind its ••• button and Add to Home Screen behind View More; older
+// agent. Safari 26 moved Share behind the menu button in the address bar (drawn as lines; Apple keeps
+// restyling it, so the step names the button, not its look) and Add to Home Screen behind View More; older
 // Safari has Share in the toolbar. Other iPhone browsers put Share in different places, so they get
 // one generic step. Pure: no DOM; the card draws the steps.
 
-export type StepIcon = "more" | "share" | "add";
+export type StepIcon = "menu" | "share" | "add";
 
 export interface HomeScreenStep {
   readonly label: string;
@@ -11,7 +12,7 @@ export interface HomeScreenStep {
 }
 
 const NEWER_SAFARI: readonly HomeScreenStep[] = [
-  { label: "Tap •••", icon: "more" },
+  { label: "Tap the menu button in the address bar", icon: "menu" },
   { label: "Share", icon: "share" },
   { label: "View More" },
   { label: "Add to Home Screen", icon: "add" },

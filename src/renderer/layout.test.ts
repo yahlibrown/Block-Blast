@@ -85,38 +85,42 @@ describe("Game layout across target screens", () => {
     }
   });
 
-  describe("spare height on tall screens (iPhone ticket 10)", () => {
-    /** Gaps (CSS px) above the Board, between Board and Tray, and below the Tray, inside the play space. */
+  describe("spare height on tall screens (iPhone ticket 12)", () => {
+    /** Gaps (CSS px): above the top band, band to Board, Board to Tray, and below the Tray. */
     const gaps = (width: number, height: number, insets: Insets) => {
       const layout = layoutGame(width, height, COLUMNS, insets);
       const boardBottom = layout.board.y + layout.board.cellSize * COLUMNS;
       const tray = layout.traySlots[0]!;
       return {
-        above: layout.board.y - (insets.top + TOP_BAND_HEIGHT),
-        between: tray.y - boardBottom,
-        below: height - insets.bottom - (tray.y + tray.h),
+        layout,
+        aboveBand: layout.bandTop - insets.top,
+        bandToBoard: layout.board.y - (layout.bandTop + TOP_BAND_HEIGHT),
+        boardToTray: tray.y - boardBottom,
+        belowTray: height - insets.bottom - (tray.y + tray.h),
       };
     };
 
-    it("leaves only a small margin below the Tray, not an empty band", () => {
+    it("centers the top band, Board and Tray as one block", () => {
       // iPhone 16 and Pro Max Home Screen apps: the Board is width-bound, so height is spare.
       for (const [w, h, insets] of [
         [393, 852, { ...NONE, top: 59, bottom: 34 }],
         [440, 956, { ...NONE, top: 62, bottom: 34 }],
       ] as const) {
-        const { above, between, below } = gaps(w, h, insets);
-        expect(below).toBeLessThanOrEqual(w * 0.05);
-        // The Tray moves down toward the thumb: more room goes between than above.
-        expect(between).toBeGreaterThan(above);
-        // The Board still sits a little below the top band, not glued to it.
-        expect(above).toBeGreaterThan(0);
+        const { aboveBand, bandToBoard, boardToTray, belowTray } = gaps(w, h, insets);
+        expect(aboveBand).toBeGreaterThan(0);
+        // Board and Tray stay as close as on a short screen: one margin apart, one margin under the band.
+        expect(bandToBoard).toBeCloseTo(boardToTray, 6);
+        // Equal space above and below the block (the block ends one margin below the Tray).
+        expect(belowTray - boardToTray).toBeCloseTo(aboveBand, 6);
       }
     });
 
-    it("keeps short screens as tight as before", () => {
-      // iPhone SE Safari tab with toolbars: height-bound, no spare to share out.
-      const { above, below } = gaps(375, 548, NONE);
-      expect(Math.abs(above - below)).toBeLessThan(1);
+    it("keeps the top band at the top on short screens", () => {
+      // iPhone SE Safari tab with toolbars: height-bound, no spare.
+      const { layout, aboveBand, bandToBoard, belowTray } = gaps(375, 548, NONE);
+      expect(layout.bandTop).toBe(0);
+      expect(aboveBand).toBe(0);
+      expect(bandToBoard).toBeCloseTo(belowTray, 6);
     });
   });
 

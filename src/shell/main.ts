@@ -162,6 +162,9 @@ function resize(): void {
   canvas!.width = Math.round(cssWidth * dpr);
   canvas!.height = Math.round(cssHeight * dpr);
   ctx!.setTransform(dpr, 0, 0, dpr, 0, 0);
+  // On a tall screen the top band moves down with the Board and Tray (iPhone ticket 12).
+  const { bandTop } = layoutGame(cssWidth, cssHeight, state.board.length, insets);
+  document.documentElement.style.setProperty("--band-offset", `${bandTop - insets.top}px`);
   draw(); // resizing clears the canvas: redraw now, not next frame
 }
 

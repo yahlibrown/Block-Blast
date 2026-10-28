@@ -15,9 +15,9 @@ const IN_APP_BROWSER =
 const labels = (ua: string | undefined) => homeScreenSteps(ua).map((s) => s.label);
 
 describe("Home Screen Hint steps", () => {
-  it("walks Safari 26 and later through ••• → Share → View More", () => {
+  it("walks Safari 26 and later through the address bar menu → Share → View More", () => {
     for (const v of ["26.0", "27.1"]) {
-      expect(labels(iPhoneSafari(v))).toEqual(["Tap •••", "Share", "View More", "Add to Home Screen"]);
+      expect(labels(iPhoneSafari(v))).toEqual(["Tap the menu button in the address bar", "Share", "View More", "Add to Home Screen"]);
     }
   });
 
@@ -35,12 +35,12 @@ describe("Home Screen Hint steps", () => {
 
   it("falls back to the newest Safari steps when the version is unknown", () => {
     const noVersion = iPhoneSafari("x").replace("Version/x ", "");
-    expect(labels(noVersion)).toEqual(["Tap •••", "Share", "View More", "Add to Home Screen"]);
-    expect(labels(undefined)).toEqual(["Tap •••", "Share", "View More", "Add to Home Screen"]);
+    expect(labels(noVersion)).toEqual(["Tap the menu button in the address bar", "Share", "View More", "Add to Home Screen"]);
+    expect(labels(undefined)).toEqual(["Tap the menu button in the address bar", "Share", "View More", "Add to Home Screen"]);
   });
 
   it("marks the steps that show an icon", () => {
-    expect(homeScreenSteps(iPhoneSafari("26.0")).map((s) => s.icon)).toEqual(["more", "share", undefined, "add"]);
+    expect(homeScreenSteps(iPhoneSafari("26.0")).map((s) => s.icon)).toEqual(["menu", "share", undefined, "add"]);
     expect(homeScreenSteps(iPhoneSafari("18.6")).map((s) => s.icon)).toEqual(["share", "add"]);
   });
 });

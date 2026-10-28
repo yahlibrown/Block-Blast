@@ -19,6 +19,8 @@ export interface Rect {
 }
 
 export interface GameLayout {
+  /** Where the top band (Score, Combo Tag, Best Score, settings button) starts; the page moves it here. */
+  readonly bandTop: number;
   readonly board: BoardLayout;
   /** One hit/draw area per Tray slot, left to right. */
   readonly traySlots: readonly Rect[];
@@ -113,8 +115,8 @@ export const NO_INSETS: Insets = { top: 0, right: 0, bottom: 0, left: 0 };
 export const TOP_BAND_HEIGHT = 72;
 
 /**
- * Board centered across the screen, Tray of three below it (low, near the thumb, when there is spare
- * height), both in the space left after the top band and the safe-area insets (`width`×`height` is the whole visible viewport).
+ * Board centered across the screen, Tray of three below it, both in the space left after the top band
+ * (on a tall screen the band, Board and Tray are centered together as one block) and the safe-area insets (`width`×`height` is the whole visible viewport).
  */
 export function layoutGame(width: number, height: number, columns: number, insets: Insets = NO_INSETS): GameLayout {
   const top = insets.top + TOP_BAND_HEIGHT;
@@ -127,16 +129,16 @@ export function layoutGame(width: number, height: number, columns: number, inset
   const trayHeight = side * traySideRatio;
   const totalHeight = side + margin + trayHeight;
   const x = insets.left + (playWidth - side) / 2;
-  // Spare height (a tall screen where the Board is width-bound): keep at most one margin below the
-  // Tray, then give a third of the rest above the Board and two thirds between it and the Tray, so the
-  // Tray sits low, near the thumb. Short screens have no spare beyond the margins and stay centered.
-  const spare = Math.max(0, playHeight - totalHeight);
-  const below = Math.min(spare / 2, margin);
-  const extra = spare - below * 2;
-  const y = top + below + extra / 3;
-  const trayY = y + side + margin + (extra * 2) / 3;
+  // Spare height (a tall screen where the Board is width-bound): the top band, Board and Tray move
+  // as one block, centered with equal space above and below. Short screens have none, so the band
+  // stays at the top and the Board and Tray sit one margin apart, as always.
+  const spare = Math.max(0, playHeight - totalHeight - margin * 2);
+  const bandTop = insets.top + spare / 2;
+  const y = bandTop + TOP_BAND_HEIGHT + margin;
+  const trayY = y + side + margin;
   const slotW = side / 3;
   return {
+    bandTop,
     board: { x, y, cellSize },
     traySlots: [0, 1, 2].map((i) => ({ x: x + i * slotW, y: trayY, w: slotW, h: trayHeight })),
     trayCellSize: Math.min(cellSize * TRAY_SCALE, slotW / (MAX_PIECE_CELLS + 0.5)),
